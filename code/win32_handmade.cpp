@@ -49,6 +49,28 @@ LRESULT CALLBACK MainWindowCallback(	HWND   Window,
 		}
 		break;
 
+		case WM_PAINT:
+		{
+			//painting process, 
+			//this function only gets called when resized or asked to repaint (for now just resized)
+			//need this struct
+			PAINTSTRUCT Paint;
+			//gotta begin, windows fills Paint for us
+			HDC Device	= BeginPaint(Window, &Paint);
+
+			//set stuff up for painting the whole window
+			int X = Paint.rcPaint.left;
+			int Y = Paint.rcPaint.top;
+			int Width = Paint.rcPaint.right - Paint.rcPaint.left;
+			int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
+			static DWORD Operation = WHITENESS;
+			PatBlt(	Device, X, Y, Width, Height, Operation);
+			Operation = BLACKNESS;
+			//gotta end
+			EndPaint(Window, &Paint);
+		}
+		break;
+
 		default:
 		{
 			//OutputDebugStringA("non treated message\n");
