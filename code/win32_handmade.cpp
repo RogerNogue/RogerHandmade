@@ -13,13 +13,67 @@
 
 //static auto declares to 0
 global_variable bool GameRunning;
-
+global_variable BITMAPINFO BitMapInfo;
+global_variable void* BitMapMemory;
+global_variable HBITMAP BitmapHandle;
+global_variable HDC BitmapDeviceContext;
 //extra info of windows:
 //CALLBACK means that it calls US
 //WINAPI means that we call windows
 
+/*
+function that initializes / resizes the window.
+internal typename adapts strings to the needed width.
+*/
+void HandmadeResizeDIBSection(int Width, int Height)
+{
+	/*
+	TODO: if creation failed maybe we should not have freed.
+	But then not having enough memory for both new and old at the same time
+	can be a big problem too.
+	*/
+
+	//TODO free DIBSection
+	if (BitmapHandle)
+	{
+		DeleteObject(BitmapHandle);
+	}
+	if(!BitmapDeviceContext)
+	{
+		BitmapDeviceContext = CreateCompatibleDC(0);
+	}
+
+	BitMapInfo.bmiHeader.biSize = sizeof(BitMapInfo.bmiHeader);
+	BitMapInfo.bmiHeader.biWidth = Width;
+	BitMapInfo.bmiHeader.biHeight = Height;
+	BitMapInfo.bmiHeader.biPlanes = 1;
+	BitMapInfo.bmiHeader.biBitCount = 32;
+	BitMapInfo.bmiHeader.biCompression = BI_RGB;
+	/*
+	Since defines set everything to 0, these initializations are not needed:
+	BitMapInfo.bmiHeader.biSize = 0;
+	BitMapInfo.bmiHeader.biXPelsPerMeter = 0;
+	BitMapInfo.bmiHeader.biYPelsPerMeter = 0;
+	BitMapInfo.bmiHeader.biClrUsed = 0;
+	BitMapInfo.bmiHeader.biClrImportant = 0;
+	*/
+
+	BitmapHandle = CreateDIBSection(BitmapDeviceContext, &BitMapInfo,
+										DIB_RGB_COLORS, &BitMapMemory,0, 0);
+}
+
+void HandmadeUpdateWindow(HDC DeviceContext, int X, int Y, int Width, int Height)
+{
+	StretchDIBits(	DeviceContext,
+					X, Y, Width, Height,
+					X, Y, Width, Height,
+					BitMapMemory,
+					&BitMapInfo,
+					DIB_RGB_COLORS, SRCCOPY);
+}
+
 //Since it is an "Application-defined function" we gotta define it
-LRESULT CALLBACK MainWindowCallback(	HWND   Window,
+LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 										UINT   Message,
 										WPARAM Wparam,
 										LPARAM Lparam)
@@ -34,21 +88,24 @@ LRESULT CALLBACK MainWindowCallback(	HWND   Window,
 		//making blocks of code protects variable names, which is cool
 		case WM_SIZE:
 		{
-			OutputDebugStringA("WM_SIZE\n");
+			tagRECT clientWindowRect;
+			GetClientRect(Window, &clientWindowRect);
+
+			int Width = clientWindowRect.right - clientWindowRect.left;
+			int Height = clientWindowRect.bottom - clientWindowRect.top;
+			HandmadeResizeDIBSection(Width, Height);
 		}
 		break;
 
 		case WM_DESTROY:
 		{
-			OutputDebugStringA("WM_DESTROY\n");
-			//TODO: probably its an error
+			//TODO: probably its an error what we want to display
 			GameRunning = false;
 		}
 		break;
 
 		case WM_CLOSE:
 		{
-			OutputDebugStringA("WM_CLOSE\n");
 			//TODO: maybe display message to de user
 			GameRunning = false;
 		}
@@ -67,16 +124,16 @@ LRESULT CALLBACK MainWindowCallback(	HWND   Window,
 			//need this struct
 			PAINTSTRUCT Paint;
 			//gotta begin, windows fills Paint for us
-			HDC Device	= BeginPaint(Window, &Paint);
+			HDC DeviceContext = BeginPaint(Window, &Paint);
 
 			//set stuff up for painting the whole window
 			int X = Paint.rcPaint.left;
 			int Y = Paint.rcPaint.top;
 			int Width = Paint.rcPaint.right - Paint.rcPaint.left;
 			int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
-			local_persistent DWORD Operation = WHITENESS;
-			PatBlt(	Device, X, Y, Width, Height, Operation);
-			Operation = BLACKNESS;
+
+			HandmadeUpdateWindow(DeviceContext, X, Y, Width, Height);
+
 			//gotta end
 			EndPaint(Window, &Paint);
 		}
@@ -112,7 +169,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 	//TODO: these flags may not be necessary anymore (legacy stuff)
 	//WindowClass.style = CS_OWNDC|CS_HREDRAW|CS_VREDRAW;//it is not.
 	
-	WindowClass.lpfnWndProc = MainWindowCallback;
+	WindowClass.lpfnWndProc = HandmadeMainWindowCallback;
 	
 	//we got this from winMain, but could also use GetModuleHandleA() if we didnt have it.
 	//GetModuleHandleA gives info about the current running code instance
