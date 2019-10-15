@@ -99,7 +99,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 	//HREDRAW makes re draw the contents if window moved horizontally
 	//VREDRAW same but vertically
 	//TODO: these flags may not be necessary anymore (legacy stuff)
-	WindowClass.style = CS_OWNDC|CS_HREDRAW|CS_VREDRAW;
+	//WindowClass.style = CS_OWNDC|CS_HREDRAW|CS_VREDRAW;//it is not.
 	
 	WindowClass.lpfnWndProc = MainWindowCallback;
 	
@@ -115,10 +115,10 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 
 	/*Time to Register the window class in order to open it*/
 	//this call returns an ATOM that may be used for some stuff
-	if (RegisterClass(&WindowClass))
+	if (RegisterClassA(&WindowClass))
 	{
 		//create the window
-		HWND WindowHandle = CreateWindowEx(
+		HWND WindowHandle = CreateWindowExA(
 							0,
 							WindowClass.lpszClassName,
 							"Roger Handmade",
@@ -142,13 +142,13 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			//we dont pass the window handle since we want to treat ALL the messages sent to us, not just to the window
 			while (correctMessage)
 			{
-				BOOL returnValue = GetMessage(&Message, 0, 0, 0);
+				BOOL returnValue = GetMessageA(&Message, 0, 0, 0);
 				correctMessage = (returnValue > 0);
 				if (correctMessage)
 				{
 					//we actually treat the message
 					TranslateMessage(&Message);//messages need a little bit of processing
-					DispatchMessage(&Message);//now dispatch it
+					DispatchMessageA(&Message);//now dispatch it
 				}
 			}
 		}
