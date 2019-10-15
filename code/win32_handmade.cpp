@@ -7,6 +7,13 @@
 
 #include <Windows.h>
 
+#define internal_function static
+#define local_persistent static
+#define global_variable static
+
+//static auto declares to 0
+global_variable bool GameRunning;
+
 //extra info of windows:
 //CALLBACK means that it calls US
 //WINAPI means that we call windows
@@ -34,12 +41,16 @@ LRESULT CALLBACK MainWindowCallback(	HWND   Window,
 		case WM_DESTROY:
 		{
 			OutputDebugStringA("WM_DESTROY\n");
+			//TODO: probably its an error
+			GameRunning = false;
 		}
 		break;
 
 		case WM_CLOSE:
 		{
 			OutputDebugStringA("WM_CLOSE\n");
+			//TODO: maybe display message to de user
+			GameRunning = false;
 		}
 		break;
 
@@ -63,7 +74,7 @@ LRESULT CALLBACK MainWindowCallback(	HWND   Window,
 			int Y = Paint.rcPaint.top;
 			int Width = Paint.rcPaint.right - Paint.rcPaint.left;
 			int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
-			static DWORD Operation = WHITENESS;
+			local_persistent DWORD Operation = WHITENESS;
 			PatBlt(	Device, X, Y, Width, Height, Operation);
 			Operation = BLACKNESS;
 			//gotta end
@@ -138,13 +149,13 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			does not do that by default. This loop treats all the messages that 
 			windows sends to our window application*/
 			MSG Message;
-			bool correctMessage = true;
+			GameRunning = true;
 			//we dont pass the window handle since we want to treat ALL the messages sent to us, not just to the window
-			while (correctMessage)
+			while (GameRunning)
 			{
 				BOOL returnValue = GetMessageA(&Message, 0, 0, 0);
-				correctMessage = (returnValue > 0);
-				if (correctMessage)
+				GameRunning = (returnValue > 0);
+				if (GameRunning)
 				{
 					//we actually treat the message
 					TranslateMessage(&Message);//messages need a little bit of processing
@@ -162,7 +173,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 		//TODO LOG error
 	}
 
-
+	//No need to release resources of window and stuff since windows does it for us
 	
 	return(0);
 }
