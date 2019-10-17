@@ -7,16 +7,31 @@
 
 #include <Windows.h>
 
+ //creates uint8_t adapted to what we want, since unsigned size may be different than what we want
+#include <stdint.h>
+
 #define internal_function static
 #define local_persistent static
 #define global_variable static
+
+//adapting types to every platform
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
+
+typedef int8_t int8;
+typedef int16_t int16;
+typedef int32_t int32;
+typedef int64_t int64;
 
 //static auto declares to 0
 global_variable bool GameRunning;
 global_variable BITMAPINFO BitMapInfo;
 global_variable void* BitMapMemory;
-global_variable HBITMAP BitmapHandle;
-global_variable HDC BitmapDeviceContext;
+global_variable int BitmapWidth;
+global_variable int BitmapHeight;
+
 //extra info of windows:
 //CALLBACK means that it calls US
 //WINAPI means that we call windows
@@ -33,19 +48,17 @@ void HandmadeResizeDIBSection(int Width, int Height)
 	can be a big problem too.
 	*/
 
-	//TODO free DIBSection
-	if (BitmapHandle)
+	//we just re allocate if we need more mem
+	if (BitMapMemory)
 	{
-		DeleteObject(BitmapHandle);
+		VirtualFree(BitMapMemory, 0, MEM_RELEASE);
 	}
-	if(!BitmapDeviceContext)
-	{
-		BitmapDeviceContext = CreateCompatibleDC(0);
-	}
+	BitmapWidth = Width;
+	BitmapHeight = Height;
 
 	BitMapInfo.bmiHeader.biSize = sizeof(BitMapInfo.bmiHeader);
-	BitMapInfo.bmiHeader.biWidth = Width;
-	BitMapInfo.bmiHeader.biHeight = Height;
+	BitMapInfo.bmiHeader.biWidth = BitmapWidth;
+	BitMapInfo.bmiHeader.biHeight = -BitmapHeight;//to make our DIB top-down
 	BitMapInfo.bmiHeader.biPlanes = 1;
 	BitMapInfo.bmiHeader.biBitCount = 32;
 	BitMapInfo.bmiHeader.biCompression = BI_RGB;
@@ -57,19 +70,69 @@ void HandmadeResizeDIBSection(int Width, int Height)
 	BitMapInfo.bmiHeader.biClrUsed = 0;
 	BitMapInfo.bmiHeader.biClrImportant = 0;
 	*/
+	/*
+	we are gonna allocate memory for the bitMapInfo in the following way
+	8 bits for red, 8 for green and 8 for blue. Since this is 3 bytes, we are gonna
+	get 8 more bits just for alignment so that every pixel colo info can be aligned to 
+	4 bytes, which is way easier to do that align it to 3
+	*/
+	int BytesPerPixel = 4;
+	int BitMapMemorySize = (BitmapWidth * BitmapHeight)*BytesPerPixel;
+	
+	//call alloc, VirtualFree deallocates
+	BitMapMemory =  VirtualAlloc(0, BitMapMemorySize, MEM_COMMIT, PAGE_READWRITE);
 
-	BitmapHandle = CreateDIBSection(BitmapDeviceContext, &BitMapInfo,
-										DIB_RGB_COLORS, &BitMapMemory,0, 0);
+	//note VirtualProtect() allows to trigger a breakpoint whenever the protected
+	//memory is accessed in any way. This is good for bug detection
+
+	//lets paint pixels, first we call a small raw pointer to manage memory
+	uint8* row = (uint8*)BitMapMemory;
+	int pitch = Width * BytesPerPixel;
+
+	for (int i = 0; i < BitmapHeight; ++i)
+	{
+		uint32* pixel = (uint32*)row;
+		for (int j = 0; j < BitmapWidth; ++j)
+		{
+			uint8* R;
+			uint8* G;
+			uint8* B;
+			TEST = R = G = B = (uint8*)pixel;
+			R; G += 1; B += 2;
+			*R = j + i;
+			*G = j + i;
+			*B = j + i;
+
+
+			//*pixel = j+i;
+			++pixel;
+		}
+		row += pitch;
+	}
 }
 
-void HandmadeUpdateWindow(HDC DeviceContext, int X, int Y, int Width, int Height)
+void HandmadeUpdateWindow(HDC DeviceContext, RECT* WindowRect, int X, int Y, int Width, int Height)
 {
-	StretchDIBits(	DeviceContext,
+	/*StretchDIBits(	DeviceContext,
 					X, Y, Width, Height,
 					X, Y, Width, Height,
 					BitMapMemory,
 					&BitMapInfo,
-					DIB_RGB_COLORS, SRCCOPY);
+					DIB_RGB_COLORS, SRCCOPY);*/
+
+	/*
+	We have a top-down DIB (cuz the way we declared our BitMapInfo)
+	StretchDiBits starts at top left, 
+	*/
+	int WindowWidth = WindowRect->right - WindowRect->left;
+	int WindowHeight = WindowRect->bottom - WindowRect->top;
+
+	StretchDIBits(DeviceContext,
+		0, 0, BitmapWidth, BitmapHeight,
+		0, 0, WindowWidth, WindowHeight,
+		BitMapMemory,
+		&BitMapInfo,
+		DIB_RGB_COLORS, SRCCOPY);
 }
 
 //Since it is an "Application-defined function" we gotta define it
@@ -132,7 +195,7 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 			int Width = Paint.rcPaint.right - Paint.rcPaint.left;
 			int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
 
-			HandmadeUpdateWindow(DeviceContext, X, Y, Width, Height);
+			HandmadeUpdateWindow(DeviceContext, &Paint.rcPaint, X, Y, Width, Height);
 
 			//gotta end
 			EndPaint(Window, &Paint);
