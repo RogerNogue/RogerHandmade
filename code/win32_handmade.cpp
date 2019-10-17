@@ -31,16 +31,55 @@ global_variable BITMAPINFO BitMapInfo;
 global_variable void* BitMapMemory;
 global_variable int BitmapWidth;
 global_variable int BitmapHeight;
+global_variable int BytesPerPixel;
+global_variable int ClientWindowWidth;
+global_variable int ClientWindowHeight;
 
 //extra info of windows:
 //CALLBACK means that it calls US
 //WINAPI means that we call windows
 
+
+//function that paints a gradient
+void renderGradient(int gradXOffset, int gradYOffset)
+{
+	//lets paint pixels, first we call a small raw pointer to manage memory
+	uint8* row = (uint8*)BitMapMemory;
+	int pitch = ClientWindowWidth * BytesPerPixel;
+
+	for (int i = 0; i < BitmapHeight; ++i)
+	{
+		uint32* pixel = (uint32*)row;
+		for (int j = 0; j < BitmapWidth; ++j)
+		{
+			/*
+			Little endian architecture: the first byte goes to the last part and so on.
+									pixel	pixel2	pixel3	pixel4(padding)
+			Pixel mapping: 32b =	BB		GG		RR		XX
+
+			it is stored in mem like:				BB	GG	RR	XX
+			but in order to have it this way in memory, we gotta store it like:
+													XX	RR	GG	BB
+
+			*/
+
+			//now we paint the pixel in a more direct manner
+			uint8 R = (uint8)j + gradXOffset;
+			uint8 G = (uint8)i + gradYOffset;
+			uint8 B = (uint8)(gradXOffset + gradYOffset);
+
+			//we store it as said above
+			*pixel++ = (uint32)(B | (G << 8) | (R<<16));
+		}
+		row += pitch;
+	}
+}
+
 /*
 function that initializes / resizes the window.
 internal typename adapts strings to the needed width.
 */
-void HandmadeResizeDIBSection(int Width, int Height)
+void HandmadeResizeDIBSection()
 {
 	/*
 	TODO: if creation failed maybe we should not have freed.
@@ -53,8 +92,8 @@ void HandmadeResizeDIBSection(int Width, int Height)
 	{
 		VirtualFree(BitMapMemory, 0, MEM_RELEASE);
 	}
-	BitmapWidth = Width;
-	BitmapHeight = Height;
+	BitmapWidth = ClientWindowWidth;
+	BitmapHeight = ClientWindowHeight;
 
 	BitMapInfo.bmiHeader.biSize = sizeof(BitMapInfo.bmiHeader);
 	BitMapInfo.bmiHeader.biWidth = BitmapWidth;
@@ -76,7 +115,7 @@ void HandmadeResizeDIBSection(int Width, int Height)
 	get 8 more bits just for alignment so that every pixel colo info can be aligned to 
 	4 bytes, which is way easier to do that align it to 3
 	*/
-	int BytesPerPixel = 4;
+	BytesPerPixel = 4;
 	int BitMapMemorySize = (BitmapWidth * BitmapHeight)*BytesPerPixel;
 	
 	//call alloc, VirtualFree deallocates
@@ -84,31 +123,8 @@ void HandmadeResizeDIBSection(int Width, int Height)
 
 	//note VirtualProtect() allows to trigger a breakpoint whenever the protected
 	//memory is accessed in any way. This is good for bug detection
+	
 
-	//lets paint pixels, first we call a small raw pointer to manage memory
-	uint8* row = (uint8*)BitMapMemory;
-	int pitch = Width * BytesPerPixel;
-
-	for (int i = 0; i < BitmapHeight; ++i)
-	{
-		uint32* pixel = (uint32*)row;
-		for (int j = 0; j < BitmapWidth; ++j)
-		{
-			uint8* R;
-			uint8* G;
-			uint8* B;
-			TEST = R = G = B = (uint8*)pixel;
-			R; G += 1; B += 2;
-			*R = j + i;
-			*G = j + i;
-			*B = j + i;
-
-
-			//*pixel = j+i;
-			++pixel;
-		}
-		row += pitch;
-	}
 }
 
 void HandmadeUpdateWindow(HDC DeviceContext, RECT* WindowRect, int X, int Y, int Width, int Height)
@@ -154,9 +170,9 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 			tagRECT clientWindowRect;
 			GetClientRect(Window, &clientWindowRect);
 
-			int Width = clientWindowRect.right - clientWindowRect.left;
-			int Height = clientWindowRect.bottom - clientWindowRect.top;
-			HandmadeResizeDIBSection(Width, Height);
+			ClientWindowWidth = clientWindowRect.right - clientWindowRect.left;
+			ClientWindowHeight = clientWindowRect.bottom - clientWindowRect.top;
+			HandmadeResizeDIBSection();
 		}
 		break;
 
@@ -270,17 +286,41 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			windows sends to our window application*/
 			MSG Message;
 			GameRunning = true;
+
+			int gradientXoffset = 0;
+			int gradientYoffset = 0;
 			//we dont pass the window handle since we want to treat ALL the messages sent to us, not just to the window
 			while (GameRunning)
 			{
-				BOOL returnValue = GetMessageA(&Message, 0, 0, 0);
-				GameRunning = (returnValue > 0);
-				if (GameRunning)
+				//BOOL returnValue = GetMessageA(&Message, 0, 0, 0);
+
+				while (PeekMessageA(&Message, WindowHandle, 0, 0, PM_REMOVE))
 				{
+					if (Message.message == WM_CLOSE || Message.message == WM_QUIT )
+					{
+						GameRunning = false;
+					}
+
 					//we actually treat the message
 					TranslateMessage(&Message);//messages need a little bit of processing
 					DispatchMessageA(&Message);//now dispatch it
 				}
+				//our gameloop
+				//update our bitmap
+				renderGradient(gradientXoffset, gradientYoffset);
+
+				//actually paint the bitmap
+				//first we get device context
+				HDC WindowContext = GetDC(WindowHandle);
+				tagRECT clientWindowRect;
+				GetClientRect(WindowHandle, &clientWindowRect);
+
+				HandmadeUpdateWindow(WindowContext, &clientWindowRect, 0, 0, ClientWindowWidth, ClientWindowHeight);
+
+				++gradientXoffset;
+				++gradientYoffset;
+				//release device context
+				ReleaseDC(WindowHandle, WindowContext);
 			}
 		}
 		else
