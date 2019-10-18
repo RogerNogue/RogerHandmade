@@ -41,7 +41,7 @@ global_variable int ClientWindowHeight;
 
 
 //function that paints a gradient
-void renderGradient(int gradXOffset, int gradYOffset)
+internal_function void renderGradient(int gradXOffset, int gradYOffset)
 {
 	//lets paint pixels, first we call a small raw pointer to manage memory
 	uint8* row = (uint8*)BitMapMemory;
@@ -64,12 +64,13 @@ void renderGradient(int gradXOffset, int gradYOffset)
 			*/
 
 			//now we paint the pixel in a more direct manner
-			uint8 R = (uint8)j + gradXOffset;
-			uint8 G = (uint8)i + gradYOffset;
+			uint8 R = (uint8)i + gradXOffset;
+			uint8 G = (uint8)j + gradYOffset;
 			uint8 B = (uint8)(gradXOffset + gradYOffset);
 
 			//we store it as said above
-			*pixel++ = (uint32)(B | (G << 8) | (R<<16));
+			*pixel = (uint32)(B | (G << 8) | (R<<16));
+			++pixel;
 		}
 		row += pitch;
 	}
@@ -79,7 +80,7 @@ void renderGradient(int gradXOffset, int gradYOffset)
 function that initializes / resizes the window.
 internal typename adapts strings to the needed width.
 */
-void HandmadeResizeDIBSection()
+internal_function void HandmadeResizeDIBSection()
 {
 	/*
 	TODO: if creation failed maybe we should not have freed.
@@ -127,7 +128,7 @@ void HandmadeResizeDIBSection()
 
 }
 
-void HandmadeUpdateWindow(HDC DeviceContext, RECT* WindowRect, int X, int Y, int Width, int Height)
+internal_function void HandmadeUpdateWindow(HDC DeviceContext, RECT* WindowRect, int X, int Y, int Width, int Height)
 {
 	/*StretchDIBits(	DeviceContext,
 					X, Y, Width, Height,
