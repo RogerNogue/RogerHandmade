@@ -53,14 +53,16 @@ internal_function void renderGradient(int gradXOffset, int gradYOffset)
 		for (int j = 0; j < BitmapWidth; ++j)
 		{
 			/*
+			IMPORTANT! MEM explanation
 			Little endian architecture: the first byte goes to the last part and so on.
-									pixel	pixel2	pixel3	pixel4(padding)
-			Pixel mapping: 32b =	BB		GG		RR		XX
+			
+			REASON: you have to store it BB GG RR XX because then when windows load the pixel,
+			they want it to be seen as XX RR GG BB.
 
-			it is stored in mem like:				BB	GG	RR	XX
-			but in order to have it this way in memory, we gotta store it like:
-													XX	RR	GG	BB
-
+			and to have in mem BB GG RR XX, you need in the uint32: 0x XX RR GG BB.
+			
+			If we did it by uint8, we would have to first store BB at the first byte, then GG,
+			then RR, and finally XX.
 			*/
 
 			//now we paint the pixel in a more direct manner
