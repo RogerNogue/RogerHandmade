@@ -246,10 +246,11 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 	//this flag(OWNDC) asks for our own context to draw so we dont have to share it and manage it a a resource
 	//OWNDC asks for a Device Context for each window
 	//another flag called CLASSDC asks for a context for the entire class
-	//HREDRAW makes re draw the contents if window moved horizontally
-	//VREDRAW same but vertically
-	//TODO: these flags may not be necessary anymore (legacy stuff)
-	//WindowClass.style = CS_OWNDC|CS_HREDRAW|CS_VREDRAW;//it is not.
+	/*
+	HREDRAW and VREDRAW force to re draw the entire window if resized,
+	not just the resized section.
+	*/
+	WindowClass.style = CS_HREDRAW|CS_VREDRAW;//it is not.
 	
 	WindowClass.lpfnWndProc = HandmadeMainWindowCallback;
 	
