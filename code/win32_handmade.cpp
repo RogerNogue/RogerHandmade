@@ -25,15 +25,27 @@ typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
 
+struct BufferData
+{
+	BITMAPINFO BufferInfo;
+	void* BufferMemory;
+	int BufferWidth;
+	int BufferHeight;
+	int Pitch;
+	int BytesPerPixel;
+};
+
+struct RectDimensions
+{
+	int width;
+	int height;
+};
+
 //static auto declares to 0
 global_variable bool GameRunning;
-global_variable BITMAPINFO BitMapInfo;
-global_variable void* BitMapMemory;
-global_variable int BitmapWidth;
-global_variable int BitmapHeight;
-global_variable int BytesPerPixel;
-global_variable int ClientWindowWidth;
-global_variable int ClientWindowHeight;
+
+global_variable BufferData BackBuffer;
+global_variable RectDimensions BufferDimensions{ 1280, 720 };
 
 //extra info of windows:
 //CALLBACK means that it calls US
@@ -41,16 +53,15 @@ global_variable int ClientWindowHeight;
 
 
 //function that paints a gradient
-internal_function void renderGradient(int gradXOffset, int gradYOffset)
+internal_function void renderGradient(const BufferData& Buffer, int gradXOffset, int gradYOffset)
 {
 	//lets paint pixels, first we call a small raw pointer to manage memory
-	uint8* row = (uint8*)BitMapMemory;
-	int pitch = ClientWindowWidth * BytesPerPixel;
+	uint8* row = (uint8*)Buffer.BufferMemory;
 
-	for (int i = 0; i < BitmapHeight; ++i)
+	for (int i = 0; i < Buffer.BufferHeight; ++i)
 	{
 		uint32* pixel = (uint32*)row;
-		for (int j = 0; j < BitmapWidth; ++j)
+		for (int j = 0; j < Buffer.BufferWidth; ++j)
 		{
 			/*
 			IMPORTANT! MEM explanation
@@ -74,91 +85,82 @@ internal_function void renderGradient(int gradXOffset, int gradYOffset)
 			*pixel = (uint32)(B | (G << 8) | (R<<16));
 			++pixel;
 		}
-		row += pitch;
+		row += Buffer.Pitch;
 	}
+}
+
+internal_function RectDimensions GetContextDimensions(HWND Window)
+{
+	tagRECT clientWindowRect;
+	GetClientRect(Window, &clientWindowRect);
+	RectDimensions dim{ clientWindowRect.right - clientWindowRect.left, clientWindowRect.bottom - clientWindowRect.top };
+	return dim;
 }
 
 /*
 function that initializes / resizes the window.
 internal typename adapts strings to the needed width.
 */
-internal_function void HandmadeResizeDIBSection()
+internal_function void HandmadeResizeDIBSection(BufferData* Buffer, int width, int height)
 {
 	/*
 	TODO: if creation failed maybe we should not have freed.
 	But then not having enough memory for both new and old at the same time
 	can be a big problem too.
 	*/
-
-	//we just re allocate if we need more mem
-	if (BitMapMemory)
+	//we just re allocate if we resized
+	if (Buffer->BufferMemory)
 	{
-		VirtualFree(BitMapMemory, 0, MEM_RELEASE);
+		VirtualFree(Buffer->BufferMemory, 0, MEM_RELEASE);
 	}
-	BitmapWidth = ClientWindowWidth;
-	BitmapHeight = ClientWindowHeight;
+	Buffer->BufferWidth = width;
+	Buffer->BufferHeight = height;
 
-	BitMapInfo.bmiHeader.biSize = sizeof(BitMapInfo.bmiHeader);
-	BitMapInfo.bmiHeader.biWidth = BitmapWidth;
-	BitMapInfo.bmiHeader.biHeight = -BitmapHeight;//to make our DIB top-down
-	BitMapInfo.bmiHeader.biPlanes = 1;
-	BitMapInfo.bmiHeader.biBitCount = 32;
-	BitMapInfo.bmiHeader.biCompression = BI_RGB;
-	/*
-	Since defines set everything to 0, these initializations are not needed:
-	BitMapInfo.bmiHeader.biSize = 0;
-	BitMapInfo.bmiHeader.biXPelsPerMeter = 0;
-	BitMapInfo.bmiHeader.biYPelsPerMeter = 0;
-	BitMapInfo.bmiHeader.biClrUsed = 0;
-	BitMapInfo.bmiHeader.biClrImportant = 0;
-	*/
+	Buffer->BufferInfo.bmiHeader.biSize = sizeof(Buffer->BufferInfo.bmiHeader);
+	Buffer->BufferInfo.bmiHeader.biWidth = Buffer->BufferWidth;
+	Buffer->BufferInfo.bmiHeader.biHeight = -Buffer->BufferHeight;//to make our DIB top-down
+	Buffer->BufferInfo.bmiHeader.biPlanes = 1;
+	Buffer->BufferInfo.bmiHeader.biBitCount = 32;
+	Buffer->BufferInfo.bmiHeader.biCompression = BI_RGB;
 	/*
 	we are gonna allocate memory for the bitMapInfo in the following way
 	8 bits for red, 8 for green and 8 for blue. Since this is 3 bytes, we are gonna
 	get 8 more bits just for alignment so that every pixel colo info can be aligned to 
 	4 bytes, which is way easier to do that align it to 3
 	*/
-	BytesPerPixel = 4;
-	int BitMapMemorySize = (BitmapWidth * BitmapHeight)*BytesPerPixel;
+	Buffer->BytesPerPixel = 4;
+	int BitMapMemorySize = (Buffer->BufferWidth * Buffer->BufferHeight)* Buffer->BytesPerPixel;
 	
 	//call alloc, VirtualFree deallocates
-	BitMapMemory =  VirtualAlloc(0, BitMapMemorySize, MEM_COMMIT, PAGE_READWRITE);
+	Buffer->BufferMemory =  VirtualAlloc(0, BitMapMemorySize, MEM_COMMIT, PAGE_READWRITE);
 
 	//note VirtualProtect() allows to trigger a breakpoint whenever the protected
 	//memory is accessed in any way. This is good for bug detection
-	
+	Buffer->Pitch = Buffer->BufferWidth * Buffer->BytesPerPixel;
 
 }
-
-internal_function void HandmadeUpdateWindow(HDC DeviceContext, RECT* WindowRect, int X, int Y, int Width, int Height)
+//for now we are not gonna make int inline since StretchDIBits() may do more than we expect
+internal_function void HandmadeUpdateWindow(const BufferData& Buffer, HDC DeviceContext, int X, int Y, int Width, int Height)
 {
-	/*StretchDIBits(	DeviceContext,
-					X, Y, Width, Height,
-					X, Y, Width, Height,
-					BitMapMemory,
-					&BitMapInfo,
-					DIB_RGB_COLORS, SRCCOPY);*/
-
 	/*
 	We have a top-down DIB (cuz the way we declared our BitMapInfo)
-	StretchDiBits starts at top left, 
+	StretchDiBits starts at top left.
 	*/
-	int WindowWidth = WindowRect->right - WindowRect->left;
-	int WindowHeight = WindowRect->bottom - WindowRect->top;
+	/*Aspect ratio setting*/
 
 	StretchDIBits(DeviceContext,
-		0, 0, BitmapWidth, BitmapHeight,
-		0, 0, WindowWidth, WindowHeight,
-		BitMapMemory,
-		&BitMapInfo,
+		0, 0, Width, Height,
+		0, 0, Buffer.BufferWidth, Buffer.BufferHeight,
+		Buffer.BufferMemory,
+		&Buffer.BufferInfo,
 		DIB_RGB_COLORS, SRCCOPY);
 }
 
 //Since it is an "Application-defined function" we gotta define it
 LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
-										UINT   Message,
-										WPARAM Wparam,
-										LPARAM Lparam)
+												UINT   Message,
+												WPARAM Wparam,
+												LPARAM Lparam)
 {
 	LRESULT Result = 0;
 
@@ -170,12 +172,6 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 		//making blocks of code protects variable names, which is cool
 		case WM_SIZE:
 		{
-			tagRECT clientWindowRect;
-			GetClientRect(Window, &clientWindowRect);
-
-			ClientWindowWidth = clientWindowRect.right - clientWindowRect.left;
-			ClientWindowHeight = clientWindowRect.bottom - clientWindowRect.top;
-			HandmadeResizeDIBSection();
 		}
 		break;
 
@@ -214,7 +210,7 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 			int Width = Paint.rcPaint.right - Paint.rcPaint.left;
 			int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
 
-			HandmadeUpdateWindow(DeviceContext, &Paint.rcPaint, X, Y, Width, Height);
+			HandmadeUpdateWindow(BackBuffer, DeviceContext, X, Y, Width, Height);
 
 			//gotta end
 			EndPaint(Window, &Paint);
@@ -242,6 +238,8 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 {
 	WNDCLASS WindowClass = {};//in C++ this initializes everything to 0
 	/*Window Class structure data initialization*/
+
+	HandmadeResizeDIBSection(&BackBuffer, BufferDimensions.width, BufferDimensions.height);
   
 	//this flag(OWNDC) asks for our own context to draw so we dont have to share it and manage it a a resource
 	//OWNDC asks for a Device Context for each window
@@ -311,15 +309,14 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				}
 				//our gameloop
 				//update our bitmap
-				renderGradient(gradientXoffset, gradientYoffset);
+				renderGradient(BackBuffer, gradientXoffset, gradientYoffset);
 
 				//actually paint the bitmap
 				//first we get device context
 				HDC WindowContext = GetDC(WindowHandle);
-				tagRECT clientWindowRect;
-				GetClientRect(WindowHandle, &clientWindowRect);
+				RectDimensions clientWindowRect = GetContextDimensions(WindowHandle);
 
-				HandmadeUpdateWindow(WindowContext, &clientWindowRect, 0, 0, ClientWindowWidth, ClientWindowHeight);
+				HandmadeUpdateWindow(BackBuffer, WindowContext, 0, 0, clientWindowRect.width, clientWindowRect.height);
 
 				++gradientXoffset;
 				++gradientYoffset;
