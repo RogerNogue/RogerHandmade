@@ -248,7 +248,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 	HREDRAW and VREDRAW force to re draw the entire window if resized,
 	not just the resized section.
 	*/
-	WindowClass.style = CS_HREDRAW|CS_VREDRAW;//it is not.
+	WindowClass.style = CS_HREDRAW|CS_VREDRAW;
 	
 	WindowClass.lpfnWndProc = HandmadeMainWindowCallback;
 	
