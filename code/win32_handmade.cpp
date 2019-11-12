@@ -42,7 +42,7 @@ struct RectDimensions
 };
 
 //static auto declares to 0
-global_variable bool GameRunning;
+global_variable bool GLOBAL_GameRunning;
 
 global_variable BufferData BackBuffer;
 global_variable RectDimensions BufferDimensions{ 1280, 720 };
@@ -178,14 +178,14 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 		case WM_DESTROY:
 		{
 			//TODO: probably its an error what we want to display
-			GameRunning = false;
+			GLOBAL_GameRunning = false;
 		}
 		break;
 
 		case WM_CLOSE:
 		{
 			//TODO: maybe display message to de user
-			GameRunning = false;
+			GLOBAL_GameRunning = false;
 		}
 		break;
 
@@ -287,12 +287,12 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			does not do that by default. This loop treats all the messages that 
 			windows sends to our window application*/
 			MSG Message;
-			GameRunning = true;
+			GLOBAL_GameRunning = true;
 
 			int gradientXoffset = 0;
 			int gradientYoffset = 0;
 			//we dont pass the window handle since we want to treat ALL the messages sent to us, not just to the window
-			while (GameRunning)
+			while (GLOBAL_GameRunning)
 			{
 				//BOOL returnValue = GetMessageA(&Message, 0, 0, 0);
 
@@ -300,7 +300,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				{
 					if (Message.message == WM_CLOSE || Message.message == WM_QUIT )
 					{
-						GameRunning = false;
+						GLOBAL_GameRunning = false;
 					}
 
 					//we actually treat the message
