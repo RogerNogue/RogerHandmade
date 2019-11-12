@@ -56,6 +56,8 @@ global_variable RectDimensions BufferDimensions{ 1280, 720 };
 internal_function void renderGradient(const BufferData& Buffer, int gradXOffset, int gradYOffset)
 {
 	//lets paint pixels, first we call a small raw pointer to manage memory
+	//row has to be in bytes, if not when we do pointer arithmetic we would
+	//increase the pointer way more space than we need and problems would occur.
 	uint8* row = (uint8*)Buffer.BufferMemory;
 
 	for (int i = 0; i < Buffer.BufferHeight; ++i)
