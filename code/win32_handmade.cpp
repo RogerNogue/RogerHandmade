@@ -14,17 +14,6 @@
 #define local_persistent static
 #define global_variable static
 
-//adapting types to every platform
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
-
-typedef int8_t int8;
-typedef int16_t int16;
-typedef int32_t int32;
-typedef int64_t int64;
-
 struct BufferData
 {
 	BITMAPINFO BufferInfo;
@@ -58,11 +47,11 @@ internal_function void renderGradient(const BufferData& Buffer, int gradXOffset,
 	//lets paint pixels, first we call a small raw pointer to manage memory
 	//row has to be in bytes, if not when we do pointer arithmetic we would
 	//increase the pointer way more space than we need and problems would occur.
-	uint8* row = (uint8*)Buffer.BufferMemory;
+	uint8_t* row = (uint8_t*)Buffer.BufferMemory;
 
 	for (int i = 0; i < Buffer.BufferHeight; ++i)
 	{
-		uint32* pixel = (uint32*)row;
+		uint32_t* pixel = (uint32_t*)row;
 		for (int j = 0; j < Buffer.BufferWidth; ++j)
 		{
 			/*
@@ -79,12 +68,12 @@ internal_function void renderGradient(const BufferData& Buffer, int gradXOffset,
 			*/
 
 			//now we paint the pixel in a more direct manner
-			uint8 R = (uint8)i + gradXOffset;
-			uint8 G = (uint8)j + gradYOffset;
-			uint8 B = (uint8)(gradXOffset + gradYOffset);
+			uint8_t R = (uint8_t)i + gradXOffset;
+			uint8_t G = (uint8_t)j + gradYOffset;
+			uint8_t B = (uint8_t)(gradXOffset + gradYOffset);
 
 			//we store it as said above
-			*pixel = (uint32)(B | (G << 8) | (R<<16));
+			*pixel = (uint32_t)(B | (G << 8) | (R<<16));
 			++pixel;
 		}
 		row += Buffer.Pitch;
