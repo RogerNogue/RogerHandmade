@@ -37,9 +37,49 @@ global_variable bool GLOBAL_GameRunning;
 global_variable BufferData BackBuffer;
 global_variable RectDimensions BufferDimensions{ 1280, 720 };
 
+//trick for loading Xinput1_3.dll ourselves.
+//could probably use the 1_4 version, but 1_3 is more reliable to be on older PCs
+//now we can call the get state with any name that points to a function with these parameters
+#define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE* pState) 
+//now we define xinput_get_state as a function of the type we need
+typedef X_INPUT_GET_STATE(xinput_get_state);
+//declare a default function just for safety
+X_INPUT_GET_STATE(XInputGetState_id)
+{
+	return (0);
+}
+//now we get our default function with a slightly different name than original(for conflicts)
+//and set it to our default value
+global_variable xinput_get_state* XInputGetState_ = XInputGetState_id;
+//and do the trick of defining the original name as our new variable
+#define XInputGetState XInputGetState_
+
+//same for XInputSetState
+#define X_INPUT_SET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_VIBRATION* pVibration)
+typedef X_INPUT_SET_STATE(xinput_set_state);
+
+X_INPUT_SET_STATE(XInputSetState_id)
+{
+	return (0);
+}
+global_variable xinput_set_state* XInputSetState_ = XInputSetState_id;
+#define XInputSetState XInputSetState_
+
 //extra info of windows:
 //CALLBACK means that it calls US
 //WINAPI means that we call windows
+
+internal_function void loadControllerLib()
+{
+	//load controller input library
+	HMODULE loadStatus = LoadLibrary("Xinput1_3.dll");
+	if (loadStatus)
+	{
+		//now we load the function
+		XInputSetState = (xinput_set_state*)GetProcAddress(loadStatus, "XInputSetState");
+		XInputGetState = (xinput_get_state*)GetProcAddress(loadStatus, "XInputGetState");
+	}
+}
 
 internal_function void InputTreating(int index, XINPUT_STATE* inputState)
 {
@@ -68,9 +108,9 @@ internal_function void ControllerInputTreating()
 	//Word: 16bit
 	//byte : 8bit
 	//short 16bit signed
-	for (int controllerIndex; controllerIndex < XUSER_MAX_COUNT; ++controllerIndex)
+	for (int controllerIndex = 0; controllerIndex < XUSER_MAX_COUNT; ++controllerIndex)
 	{
-		XINPUT_STATE* controllerState;
+		XINPUT_STATE* controllerState{};
 		if (XInputGetState(controllerIndex, controllerState) == ERROR_SUCCESS)
 		{
 			//succeded
@@ -270,6 +310,8 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 						int       ShowCode)
 
 {
+	loadControllerLib();
+
 	WNDCLASS WindowClass = {};//in C++ this initializes everything to 0
 	/*Window Class structure data initialization*/
 
