@@ -308,7 +308,7 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 		case WM_KEYUP:
 		{
 			
-			//checking key states
+			//checking if key is just pressed
 			bool justPressed = ((Lparam >> 30 & 1) == 0);
 
 			//checking keys
@@ -345,6 +345,22 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 				if (Wparam == VK_SPACE)
 				{
 					OutputDebugStringA("SPACEBAR");
+				}
+				if (Wparam == VK_UP)
+				{
+					OutputDebugStringA("ARROW UP");
+				}
+				if (Wparam == VK_LEFT)
+				{
+					OutputDebugStringA("ARROW LEFT");
+				}
+				if (Wparam == VK_RIGHT)
+				{
+					OutputDebugStringA("ARROW RIGHT");
+				}
+				if (Wparam == VK_DOWN)
+				{
+					OutputDebugStringA("ARROW DOWN");
 				}
 			}
 		}
