@@ -99,21 +99,43 @@ internal_function void InputTreating(int index, XINPUT_STATE* inputState, int* o
 
 	int16_t leftThumbX = inputState->Gamepad.sThumbLX;
 	int16_t leftThumbY = inputState->Gamepad.sThumbLY;
+
+	int16_t rightThumbX = inputState->Gamepad.sThumbRX;
+	int16_t rightThumbY = inputState->Gamepad.sThumbRY;
+
 	if (up)
 	{
-		--offsetY;
+		*offsetY+= 2;
 	}
 	if (down)
 	{
-		++offsetY;
+		*offsetY -= 2;
 	}
 	if (left)
 	{
-		++offsetX;
+		*offsetX += 2;
 	}
 	if (right)
 	{
-		--offsetX;
+		*offsetX -= 2;
+	}
+	short threshold = 10000;
+	if (abs(leftThumbY) > threshold)
+	{
+		*offsetY += int(leftThumbY >> 13);
+	}
+	if (abs(leftThumbX) > threshold)
+	{
+		*offsetX -= int(leftThumbX >> 13);
+	}
+
+	if (abs(rightThumbY) > threshold)
+	{
+		*offsetY += int(rightThumbY >> 13);
+	}
+	if (abs(rightThumbX) > threshold)
+	{
+		*offsetX -= int(rightThumbX >> 13);
 	}
 }
 
@@ -125,12 +147,12 @@ internal_function void ControllerInputTreating(int* offsetX, int* offsetY)
 	//short 16bit signed
 	for (int controllerIndex = 0; controllerIndex < XUSER_MAX_COUNT; ++controllerIndex)
 	{
-		XINPUT_STATE* controllerState{};
-		int res = XInputGetState(controllerIndex, controllerState);
+		XINPUT_STATE controllerState;
+		int res = XInputGetState(controllerIndex, &controllerState);
 		if (res == ERROR_SUCCESS)
 		{
 			//succeded
-			InputTreating(controllerIndex, controllerState, offsetX, offsetY);
+			InputTreating(controllerIndex, &controllerState, offsetX, offsetY);
 		}
 		else
 		{
@@ -167,8 +189,8 @@ internal_function void renderGradient(const BufferData& Buffer, int gradXOffset,
 			*/
 
 			//now we paint the pixel in a more direct manner
-			uint8_t R = (uint8_t)i + gradXOffset;
-			uint8_t G = (uint8_t)j + gradYOffset;
+			uint8_t R = (uint8_t)i + gradYOffset;
+			uint8_t G = (uint8_t)j + gradXOffset;
 			uint8_t B = (uint8_t)(gradXOffset + gradYOffset);
 
 			//we store it as said above
