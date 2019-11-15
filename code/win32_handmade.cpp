@@ -301,6 +301,55 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 		}
 		break;
 
+		//keyboard input messages
+		case WM_SYSKEYDOWN:
+		case WM_SYSKEYUP:
+		case WM_KEYDOWN:
+		case WM_KEYUP:
+		{
+			
+			//checking key states
+			bool justPressed = ((Lparam >> 30 & 1) == 0);
+
+			//checking keys
+			if (justPressed)
+			{
+				if (Wparam == VK_ESCAPE)
+				{
+					OutputDebugStringA("Escape");
+				}
+				if (Wparam == 'W')
+				{
+					OutputDebugStringA("W");
+				}
+				if (Wparam == 'A')
+				{
+					OutputDebugStringA("A");
+				}
+				if (Wparam == 'S')
+				{
+					OutputDebugStringA("S");
+				}
+				if (Wparam == 'D')
+				{
+					OutputDebugStringA("D");
+				}
+				if (Wparam == 'Q')
+				{
+					OutputDebugStringA("Q");
+				}
+				if (Wparam == 'E')
+				{
+					OutputDebugStringA("E");
+				}
+				if (Wparam == VK_SPACE)
+				{
+					OutputDebugStringA("SPACEBAR");
+				}
+			}
+		}
+		break;
+
 		case WM_ACTIVATEAPP:
 		{
 			OutputDebugStringA("WM_ACTIVATEAPP\n");
