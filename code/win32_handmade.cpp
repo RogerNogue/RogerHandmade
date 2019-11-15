@@ -81,7 +81,7 @@ internal_function void loadControllerLib()
 	}
 }
 
-internal_function void InputTreating(int index, XINPUT_STATE* inputState)
+internal_function void InputTreating(int index, XINPUT_STATE* inputState, int* offsetX, int* offsetY)
 {
 	//TODO:
 	//state has a packet number that indicates how many times the state of the controller changed
@@ -99,10 +99,25 @@ internal_function void InputTreating(int index, XINPUT_STATE* inputState)
 
 	int16_t leftThumbX = inputState->Gamepad.sThumbLX;
 	int16_t leftThumbY = inputState->Gamepad.sThumbLY;
-
+	if (up)
+	{
+		--offsetY;
+	}
+	if (down)
+	{
+		++offsetY;
+	}
+	if (left)
+	{
+		++offsetX;
+	}
+	if (right)
+	{
+		--offsetX;
+	}
 }
 
-internal_function void ControllerInputTreating()
+internal_function void ControllerInputTreating(int* offsetX, int* offsetY)
 {
 	//Dword = 32bit = int
 	//Word: 16bit
@@ -111,10 +126,11 @@ internal_function void ControllerInputTreating()
 	for (int controllerIndex = 0; controllerIndex < XUSER_MAX_COUNT; ++controllerIndex)
 	{
 		XINPUT_STATE* controllerState{};
-		if (XInputGetState(controllerIndex, controllerState) == ERROR_SUCCESS)
+		int res = XInputGetState(controllerIndex, controllerState);
+		if (res == ERROR_SUCCESS)
 		{
 			//succeded
-			InputTreating(controllerIndex, controllerState);
+			InputTreating(controllerIndex, controllerState, offsetX, offsetY);
 		}
 		else
 		{
@@ -384,7 +400,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					DispatchMessageA(&Message);//now dispatch it
 				}
 				//controller input checking 
-				ControllerInputTreating();
+				ControllerInputTreating(&gradientXoffset, &gradientYoffset);
 
 				//our gameloop
 				//update our bitmap
@@ -397,8 +413,8 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 
 				HandmadeUpdateWindow(BackBuffer, WindowContext, 0, 0, clientWindowRect.width, clientWindowRect.height);
 
-				++gradientXoffset;
-				++gradientYoffset;
+				/*++gradientXoffset;
+				++gradientYoffset;*/
 				//release device context
 				ReleaseDC(WindowHandle, WindowContext);
 			}
