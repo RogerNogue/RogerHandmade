@@ -9,6 +9,7 @@
 
  //creates uint8_t adapted to what we want, since unsigned size may be different than what we want
 #include <stdint.h>
+#include <xinput.h>
 
 #define internal_function static
 #define local_persistent static
@@ -40,6 +41,48 @@ global_variable RectDimensions BufferDimensions{ 1280, 720 };
 //CALLBACK means that it calls US
 //WINAPI means that we call windows
 
+internal_function void InputTreating(int index, XINPUT_STATE* inputState)
+{
+	//TODO:
+	//state has a packet number that indicates how many times the state of the controller changed
+	//this may give us info about having to increase this function call frequency rate in the future.
+	
+	//for now we will not care about controller index
+	bool up = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
+	bool down = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
+	bool left = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
+	bool right = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
+	bool start = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_START;
+	bool back = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_BACK;
+	bool leftShoulder = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
+	bool rightShoulder = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
+
+	int16_t leftThumbX = inputState->Gamepad.sThumbLX;
+	int16_t leftThumbY = inputState->Gamepad.sThumbLY;
+
+}
+
+internal_function void ControllerInputTreating()
+{
+	//Dword = 32bit = int
+	//Word: 16bit
+	//byte : 8bit
+	//short 16bit signed
+	for (int controllerIndex; controllerIndex < XUSER_MAX_COUNT; ++controllerIndex)
+	{
+		XINPUT_STATE* controllerState;
+		if (XInputGetState(controllerIndex, controllerState) == ERROR_SUCCESS)
+		{
+			//succeded
+			InputTreating(controllerIndex, controllerState);
+		}
+		else
+		{
+			//error or controller not connected
+		}
+	}
+
+}
 
 //function that paints a gradient
 internal_function void renderGradient(const BufferData& Buffer, int gradXOffset, int gradYOffset)
@@ -298,6 +341,9 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					TranslateMessage(&Message);//messages need a little bit of processing
 					DispatchMessageA(&Message);//now dispatch it
 				}
+				//controller input checking 
+				ControllerInputTreating();
+
 				//our gameloop
 				//update our bitmap
 				renderGradient(BackBuffer, gradientXoffset, gradientYoffset);
