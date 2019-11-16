@@ -39,16 +39,19 @@ global_variable RectDimensions BufferDimensions{ 1280, 720 };
 
 //trick for loading Xinput1_3.dll ourselves.
 //could probably use the 1_4 version, but 1_3 is more reliable to be on older PCs
-//now we can call the get state with any name that points to a function with these parameters
+
+//now "X_INPUT_GET_STATE(name)" defines a new function with that name
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE* pState) 
-//now we define xinput_get_state as a function of the type we need
+//this line creates the "xinput_get_state" type and makes it so that 
+//X_INPUT_GET_STATE(something of "xinput_get_state" type) does: 
+//DWORD WINAPI "name of var"(DWORD dwUserIndex, XINPUT_STATE* pState)
 typedef X_INPUT_GET_STATE(xinput_get_state);
 //declare a default function just for safety
-X_INPUT_GET_STATE(XInputGetState_id)
+X_INPUT_GET_STATE(XInputGetState_id) //this line is equal to: DWORD WINAPI XInputGetState_id(DWORD dwUserIndex, XINPUT_STATE* pState) 
 {
 	return (0);
 }
-//now we get our default function with a slightly different name than original(for conflicts)
+//now we get our GetState function with a slightly different name than original(for conflicts)
 //and set it to our default value
 global_variable xinput_get_state* XInputGetState_ = XInputGetState_id;
 //and do the trick of defining the original name as our new variable
