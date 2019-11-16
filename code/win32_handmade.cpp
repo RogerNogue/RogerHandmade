@@ -330,10 +330,11 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 		{
 			
 			//checking if key is just pressed
-			bool justPressed = ((Lparam >> 30 & 1) == 0);
+			bool wasPressed = ((Lparam >> 30 & 1) == 0);
+			bool isReleased = ((Lparam >> 31 & 0) == 1);
 
 			//checking keys
-			if (justPressed)
+			if (wasPressed && !isReleased)
 			{
 				if (Wparam == VK_ESCAPE)
 				{
