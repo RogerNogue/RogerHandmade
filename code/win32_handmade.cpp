@@ -106,6 +106,10 @@ internal_function void InputTreating(int index, XINPUT_STATE* inputState, int* o
 	int16_t rightThumbX = inputState->Gamepad.sThumbRX;
 	int16_t rightThumbY = inputState->Gamepad.sThumbRY;
 
+	//short 0-255
+	short leftTrigger = inputState->Gamepad.bLeftTrigger;
+	short rightTrigger = inputState->Gamepad.bRightTrigger;
+
 	if (up)
 	{
 		*offsetY+= 2;
@@ -139,6 +143,20 @@ internal_function void InputTreating(int index, XINPUT_STATE* inputState, int* o
 	if (abs(rightThumbX) > threshold)
 	{
 		*offsetX -= int(rightThumbX >> 13);
+	}
+	_XINPUT_VIBRATION vib;
+	vib.wLeftMotorSpeed = 0;
+	vib.wRightMotorSpeed = 0;
+	if (leftTrigger > 250 || 
+		rightTrigger > 250)
+	{
+		vib.wLeftMotorSpeed = 65000;
+		vib.wRightMotorSpeed = 65000;
+		XInputSetState(index, &vib);
+	}
+	else
+	{
+		XInputSetState(index, &vib);
 	}
 }
 
