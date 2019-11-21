@@ -10,6 +10,7 @@
  //creates uint8_t adapted to what we want, since unsigned size may be different than what we want
 #include <stdint.h>
 #include <xinput.h>
+#include <dsound.h>
 
 #define internal_function static
 #define local_persistent static
@@ -70,9 +71,30 @@ X_INPUT_SET_STATE(XInputSetState_id)
 global_variable xinput_set_state* XInputSetState_ = XInputSetState_id;
 #define XInputSetState XInputSetState_
 
+//DirectSound definitions
+#define DIRECTSOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);
+typedef DIRECTSOUND_CREATE(direct_sound_create);
+
 //extra info of windows:
 //CALLBACK means that it calls US
 //WINAPI means that we call windows
+
+internal_function void LoadSound()
+{
+	//Load Lib
+	HMODULE directSoundStatus = LoadLibrary("Dsound.dll");
+	direct_sound_create* directSoundCreation = nullptr;
+	if (directSoundStatus)
+	{
+		directSoundCreation = (direct_sound_create*)GetProcAddress(directSoundStatus, "DirectSoundCreate");
+	}
+	
+	//get DirectSound object
+
+	//primary buffer
+
+	//secondary buffer
+}
 
 internal_function void loadControllerLib()
 {
@@ -498,6 +520,9 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 		//check for creation error
 		if (WindowHandle)
 		{
+			//DirectSound loading
+			LoadSound();
+
 			/*Window created, now we have to start a message loop since windows
 			does not do that by default. This loop treats all the messages that 
 			windows sends to our window application*/
