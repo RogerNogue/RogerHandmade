@@ -265,7 +265,7 @@ internal_function void HandmadeResizeDIBSection(BufferData* Buffer, int width, i
 	int BitMapMemorySize = (Buffer->BufferWidth * Buffer->BufferHeight)* Buffer->BytesPerPixel;
 	
 	//call alloc, VirtualFree deallocates
-	Buffer->BufferMemory =  VirtualAlloc(0, BitMapMemorySize, MEM_COMMIT, PAGE_READWRITE);
+	Buffer->BufferMemory =  VirtualAlloc(0, BitMapMemorySize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 
 	//note VirtualProtect() allows to trigger a breakpoint whenever the protected
 	//memory is accessed in any way. This is good for bug detection
