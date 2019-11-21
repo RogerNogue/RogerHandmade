@@ -15,6 +15,8 @@
 #define local_persistent static
 #define global_variable static
 
+typedef int32_t bool32;
+
 struct BufferData
 {
 	BITMAPINFO BufferInfo;
@@ -49,7 +51,7 @@ typedef X_INPUT_GET_STATE(xinput_get_state);
 //declare a default function just for safety
 X_INPUT_GET_STATE(XInputGetState_id) //this line is equal to: DWORD WINAPI XInputGetState_id(DWORD dwUserIndex, XINPUT_STATE* pState) 
 {
-	return (0);
+	return (ERROR_DEVICE_NOT_CONNECTED);
 }
 //now we get our GetState function with a slightly different name than original(for conflicts)
 //and set it to our default value
@@ -63,7 +65,7 @@ typedef X_INPUT_SET_STATE(xinput_set_state);
 
 X_INPUT_SET_STATE(XInputSetState_id)
 {
-	return (0);
+	return (ERROR_DEVICE_NOT_CONNECTED);
 }
 global_variable xinput_set_state* XInputSetState_ = XInputSetState_id;
 #define XInputSetState XInputSetState_
@@ -75,7 +77,11 @@ global_variable xinput_set_state* XInputSetState_ = XInputSetState_id;
 internal_function void loadControllerLib()
 {
 	//load controller input library
-	HMODULE loadStatus = LoadLibrary("Xinput1_3.dll");
+	HMODULE loadStatus = LoadLibrary("Xinput1_4.dll");
+	if (!loadStatus)
+	{
+		loadStatus = LoadLibrary("Xinput1_3.dll");
+	}
 	if (loadStatus)
 	{
 		//now we load the function
@@ -332,6 +338,7 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 			//checking if key is just pressed
 			bool wasPressed = ((Lparam >> 30 & 1) == 0);
 			bool isReleased = ((Lparam >> 31 & 0) == 1);
+			bool32 altPressed = (Lparam >> 29 & 1) == 1;
 
 			//checking keys
 			if (wasPressed && !isReleased)
@@ -383,6 +390,13 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 				if (Wparam == VK_DOWN)
 				{
 					OutputDebugStringA("ARROW DOWN");
+				}
+				if (altPressed)
+				{
+					if (Wparam == VK_F4)
+					{
+						GLOBAL_GameRunning = false;
+					}
 				}
 			}
 		}
