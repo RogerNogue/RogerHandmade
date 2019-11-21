@@ -79,21 +79,76 @@ typedef DIRECTSOUND_CREATE(direct_sound_create);
 //CALLBACK means that it calls US
 //WINAPI means that we call windows
 
-internal_function void LoadSound()
+internal_function void LoadSound(HWND window, int32_t samplesPerSec, int32_t bufferSize)
 {
 	//Load Lib
-	HMODULE directSoundStatus = LoadLibrary("Dsound.dll");
+	HMODULE directSoundStatus = LoadLibrary("dsound.dll");
 	direct_sound_create* directSoundCreation = nullptr;
 	if (directSoundStatus)
 	{
 		directSoundCreation = (direct_sound_create*)GetProcAddress(directSoundStatus, "DirectSoundCreate");
 	}
-	
-	//get DirectSound object
+	else
+	{
+		//TODO: log error loading sound
+		return;
+	}
+	if (!directSoundCreation)
+	{
+		//TODO: error loading function
+		return;
+	}
+	LPDIRECTSOUND dsObject = {};
+	if (!SUCCEEDED(directSoundCreation(0, &dsObject, 0)))
+	{
+		//TODO: log error crteating DS
+		return;
+	}
+	//now we set the cooperative level (it is necessary after creation)
+	if (!SUCCEEDED(dsObject->SetCooperativeLevel(window, DSSCL_PRIORITY)))
+	{
+		//TODO: log error crteating DS
+		return;
+	}
 
 	//primary buffer
+	DSBUFFERDESC primaryBufferDesc = {};
+	primaryBufferDesc.dwSize = sizeof(primaryBufferDesc);
+	primaryBufferDesc.dwFlags = DSBCAPS_PRIMARYBUFFER;
+
+	LPDIRECTSOUNDBUFFER primaryBuffer;
+	if (!SUCCEEDED(dsObject->CreateSoundBuffer(&primaryBufferDesc, &primaryBuffer, 0)))
+	{
+		//TODO: log error crteating first buffer
+		return;
+	}
+	WAVEFORMATEX bufferFormat = {};
+	bufferFormat.wFormatTag = WAVE_FORMAT_PCM;
+	bufferFormat.nChannels = 2;
+	bufferFormat.nSamplesPerSec = samplesPerSec;
+	bufferFormat.wBitsPerSample = 16;//could also be 8, but 16 is better quality
+	bufferFormat.nBlockAlign = bufferFormat.nChannels*bufferFormat.wBitsPerSample/8;
+	bufferFormat.nAvgBytesPerSec = samplesPerSec* bufferFormat.nBlockAlign;
+	bufferFormat.cbSize = 0;
+	if (!SUCCEEDED(primaryBuffer->SetFormat(&bufferFormat)))
+	{
+		//TODO: log error setting buffer format
+		return;
+	}
 
 	//secondary buffer
+	DSBUFFERDESC secondaryBufferDesc = {};
+	secondaryBufferDesc.dwSize = sizeof(secondaryBufferDesc);
+	secondaryBufferDesc.dwBufferBytes = bufferSize;
+	secondaryBufferDesc.lpwfxFormat = &bufferFormat;
+
+	LPDIRECTSOUNDBUFFER secondaryBuffer;
+	if (!SUCCEEDED(dsObject->CreateSoundBuffer(&secondaryBufferDesc, &secondaryBuffer, 0)))
+	{
+		//TODO: log error creating second buffer
+		return;
+	}
+	
 }
 
 internal_function void loadControllerLib()
@@ -521,7 +576,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 		if (WindowHandle)
 		{
 			//DirectSound loading
-			LoadSound();
+			LoadSound(WindowHandle, 48000, 48000*2*sizeof(int16_t));
 
 			/*Window created, now we have to start a message loop since windows
 			does not do that by default. This loop treats all the messages that 
