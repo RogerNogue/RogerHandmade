@@ -39,6 +39,7 @@ global_variable bool GLOBAL_GameRunning;
 
 global_variable BufferData BackBuffer;
 global_variable RectDimensions BufferDimensions{ 1280, 720 };
+global_variable LPDIRECTSOUNDBUFFER secondaryBuffer;
 
 //trick for loading Xinput1_3.dll ourselves.
 //could probably use the 1_4 version, but 1_3 is more reliable to be on older PCs
@@ -72,7 +73,8 @@ global_variable xinput_set_state* XInputSetState_ = XInputSetState_id;
 #define XInputSetState XInputSetState_
 
 //DirectSound definitions
-#define DIRECTSOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);
+
+#define DIRECTSOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND8* ppDS8, LPUNKNOWN pUnkOuter)
 typedef DIRECTSOUND_CREATE(direct_sound_create);
 
 //extra info of windows:
@@ -86,7 +88,7 @@ internal_function void LoadSound(HWND window, int32_t samplesPerSec, int32_t buf
 	direct_sound_create* directSoundCreation = nullptr;
 	if (directSoundStatus)
 	{
-		directSoundCreation = (direct_sound_create*)GetProcAddress(directSoundStatus, "DirectSoundCreate");
+		directSoundCreation = (direct_sound_create*)GetProcAddress(directSoundStatus, "DirectSoundCreate8");
 	}
 	else
 	{
@@ -98,7 +100,8 @@ internal_function void LoadSound(HWND window, int32_t samplesPerSec, int32_t buf
 		//TODO: error loading function
 		return;
 	}
-	LPDIRECTSOUND dsObject = {};
+
+	LPDIRECTSOUND8 dsObject = {};
 	if (!SUCCEEDED(directSoundCreation(0, &dsObject, 0)))
 	{
 		//TODO: log error crteating DS
@@ -142,7 +145,6 @@ internal_function void LoadSound(HWND window, int32_t samplesPerSec, int32_t buf
 	secondaryBufferDesc.dwBufferBytes = bufferSize;
 	secondaryBufferDesc.lpwfxFormat = &bufferFormat;
 
-	LPDIRECTSOUNDBUFFER secondaryBuffer;
 	if (!SUCCEEDED(dsObject->CreateSoundBuffer(&secondaryBufferDesc, &secondaryBuffer, 0)))
 	{
 		//TODO: log error creating second buffer
@@ -303,6 +305,11 @@ internal_function void renderGradient(const BufferData& Buffer, int gradXOffset,
 		}
 		row += Buffer.Pitch;
 	}
+}
+
+internal_function void PlayAudio()
+{
+
 }
 
 internal_function RectDimensions GetContextDimensions(HWND Window)
@@ -608,6 +615,9 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				//our gameloop
 				//update our bitmap
 				renderGradient(BackBuffer, gradientXoffset, gradientYoffset);
+
+				//audio output function
+				PlayAudio();
 
 				//actually paint the bitmap
 				//first we get device context
