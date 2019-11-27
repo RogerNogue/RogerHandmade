@@ -51,6 +51,7 @@ global_variable bool GLOBAL_GameRunning;
 global_variable BufferData BackBuffer;
 global_variable RectDimensions BufferDimensions{ 1280, 720 };
 global_variable LPDIRECTSOUNDBUFFER secondaryBuffer;
+global_variable HandmadeAudioInfo audioInf;
 
 //trick for loading Xinput1_3.dll ourselves.
 //could probably use the 1_4 version, but 1_3 is more reliable to be on older PCs
@@ -318,7 +319,7 @@ internal_function void renderGradient(const BufferData& Buffer, int gradXOffset,
 	}
 }
 
-internal_function void HandmadePlaySound(HandmadeAudioInfo* audioInf)
+internal_function void HandmadePlaySound()
 {
 	DWORD playCursor = 0;
 	DWORD writeCursor = 0;
@@ -328,12 +329,12 @@ internal_function void HandmadePlaySound(HandmadeAudioInfo* audioInf)
 		return;
 	}
 	//lockOffset is the size from the start to the point where lock begins
-	DWORD lockOffset = audioInf->soundCounter*audioInf->bytesPerSample % audioInf->bufferSize;
+	DWORD lockOffset = audioInf.soundCounter*audioInf.bytesPerSample % audioInf.bufferSize;
 	DWORD bytesToWrite = 0;
 	if (lockOffset > playCursor)
 	{
 		//case we are in front of write cursor
-		bytesToWrite = audioInf->bufferSize - lockOffset + playCursor;
+		bytesToWrite = audioInf.bufferSize - lockOffset + playCursor;
 	}
 	else
 	{
@@ -357,11 +358,11 @@ internal_function void HandmadePlaySound(HandmadeAudioInfo* audioInf)
 	}
 	//fill buffer at first locked part
 	int16_t* bufferPointer = (int16_t*)firstLockedPart;
-	DWORD firstLockedSamples = firstLockedSize / audioInf->bytesPerSample;
+	DWORD firstLockedSamples = firstLockedSize / audioInf.bytesPerSample;
 	for (DWORD iterator = 0; iterator < firstLockedSamples; ++iterator)
 	{
 		int16_t sampleValue;
-		if (audioInf->soundCounter / audioInf->halfPeriod % 2 == 0)
+		if (audioInf.soundCounter / audioInf.halfPeriod % 2 == 0)
 		{
 			//case high wave
 			sampleValue = 250;
@@ -374,15 +375,15 @@ internal_function void HandmadePlaySound(HandmadeAudioInfo* audioInf)
 		
 		*bufferPointer++ = sampleValue;//left ear sample
 		*bufferPointer++ = sampleValue;//right ear sample
-		++audioInf->soundCounter;
+		++audioInf.soundCounter;
 	}
 	//fill buffer at second locked part
 	bufferPointer = (int16_t*)secondLockedPart;
-	DWORD secondLockedSamples = secondLockedSize / audioInf->bytesPerSample;
+	DWORD secondLockedSamples = secondLockedSize / audioInf.bytesPerSample;
 	for (DWORD iterator = 0; iterator < secondLockedSamples; ++iterator)
 	{
 		int16_t sampleValue;
-		if (audioInf->soundCounter / audioInf->halfPeriod % 2 == 0)
+		if (audioInf.soundCounter / audioInf.halfPeriod % 2 == 0)
 		{
 			//case high wave
 			sampleValue = 250;
@@ -394,7 +395,7 @@ internal_function void HandmadePlaySound(HandmadeAudioInfo* audioInf)
 		}
 		*bufferPointer++ = sampleValue;//left ear sample
 		*bufferPointer++ = sampleValue;//right ear sample
-		++audioInf->soundCounter;
+		++audioInf.soundCounter;
 	}
 
 	HRESULT resUnlock = secondaryBuffer->Unlock(firstLockedPart, firstLockedSize,
@@ -525,29 +526,56 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 				{
 					OutputDebugStringA("Escape");
 				}
-				if (Wparam == 'W')
-				{
-					OutputDebugStringA("W");
-				}
-				if (Wparam == 'A')
-				{
-					OutputDebugStringA("A");
-				}
-				if (Wparam == 'S')
-				{
-					OutputDebugStringA("S");
-				}
-				if (Wparam == 'D')
-				{
-					OutputDebugStringA("D");
-				}
 				if (Wparam == 'Q')
 				{
 					OutputDebugStringA("Q");
+					audioInf.cTonesPerSec = 261;//C, Do
+					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+				}
+				if (Wparam == 'W')
+				{
+					OutputDebugStringA("W");
+					audioInf.cTonesPerSec = 293;//D, Re
+					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
 				}
 				if (Wparam == 'E')
 				{
 					OutputDebugStringA("E");
+					audioInf.cTonesPerSec = 329;//E, Mi
+					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+					
+				}
+				if (Wparam == 'A')
+				{
+					OutputDebugStringA("A");
+					audioInf.cTonesPerSec = 349;//F, Fa
+					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+					
+				}
+				if (Wparam == 'S')
+				{
+					OutputDebugStringA("S");
+					audioInf.cTonesPerSec = 392;//G, Sol
+					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+				}
+				if (Wparam == 'D')
+				{
+					OutputDebugStringA("D");
+					audioInf.cTonesPerSec = 440;//A, La
+					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+				}
+				if (Wparam == 'Z')
+				{
+					OutputDebugStringA("Z");
+					audioInf.cTonesPerSec = 493;//B, Si
+					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
 				}
 				if (Wparam == VK_SPACE)
 				{
@@ -676,11 +704,11 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 		//check for creation error
 		if (WindowHandle)
 		{
-			HandmadeAudioInfo audioInf = {};
+			audioInf = {};
 			//initialize sound variables
 			audioInf.samplesPerSec = 48000;
 			audioInf.bufferSize = 48000 * 2 * sizeof(int16_t);
-			audioInf.cTonesPerSec = 256;//hz of C frequency
+			audioInf.cTonesPerSec = 261;//hz of C frequency
 			audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 			audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
 			audioInf.bytesPerSample = 2 * sizeof(int16_t);
@@ -723,7 +751,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				renderGradient(BackBuffer, gradientXoffset, gradientYoffset);
 
 				//audio output function
-				HandmadePlaySound(&audioInf);
+				HandmadePlaySound();
 
 				//actually paint the bitmap
 				//first we get device context
