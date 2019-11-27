@@ -34,6 +34,17 @@ struct RectDimensions
 	int height;
 };
 
+struct HandmadeAudioInfo
+{
+	int32_t samplesPerSec;
+	int32_t bufferSize;
+	int32_t cTonesPerSec;//hz of C frequency
+	int32_t squareWavePeriod;
+	int32_t halfPeriod;
+	int32_t bytesPerSample;
+	uint32_t soundCounter;
+};
+
 //static auto declares to 0
 global_variable bool GLOBAL_GameRunning;
 
@@ -307,9 +318,92 @@ internal_function void renderGradient(const BufferData& Buffer, int gradXOffset,
 	}
 }
 
-internal_function void PlayAudio()
+internal_function void HandmadePlaySound(HandmadeAudioInfo* audioInf)
 {
+	DWORD playCursor = 0;
+	DWORD writeCursor = 0;
+	if (!SUCCEEDED(secondaryBuffer->GetCurrentPosition(&playCursor, &writeCursor)))
+	{
+		//TODO: log error getting position
+		return;
+	}
+	//lockOffset is the size from the start to the point where lock begins
+	DWORD lockOffset = audioInf->soundCounter*audioInf->bytesPerSample % audioInf->bufferSize;
+	DWORD bytesToWrite = 0;
+	if (lockOffset > playCursor)
+	{
+		//case we are in front of write cursor
+		bytesToWrite = audioInf->bufferSize - lockOffset + playCursor;
+	}
+	else
+	{
+		//case we are behind write cursor
+		bytesToWrite = playCursor - lockOffset;
+	}
+	if (bytesToWrite == 0)
+	{
+		return;
+	}
+	VOID* firstLockedPart;
+	VOID* secondLockedPart;
+	DWORD firstLockedSize;
+	DWORD secondLockedSize;
+	HRESULT resLock = secondaryBuffer->Lock(lockOffset, bytesToWrite, &firstLockedPart, &firstLockedSize,
+		&secondLockedPart, &secondLockedSize, 0);
+	if (!SUCCEEDED(resLock))
+	{
+		//TODO: log error locking buffer
+		return;
+	}
+	//fill buffer at first locked part
+	int16_t* bufferPointer = (int16_t*)firstLockedPart;
+	DWORD firstLockedSamples = firstLockedSize / audioInf->bytesPerSample;
+	for (DWORD iterator = 0; iterator < firstLockedSamples; ++iterator)
+	{
+		int16_t sampleValue;
+		if (audioInf->soundCounter / audioInf->halfPeriod % 2 == 0)
+		{
+			//case high wave
+			sampleValue = 250;
+		}
+		else
+		{
+			//case low wave
+			sampleValue = -250;
+		}
+		
+		*bufferPointer++ = sampleValue;//left ear sample
+		*bufferPointer++ = sampleValue;//right ear sample
+		++audioInf->soundCounter;
+	}
+	//fill buffer at second locked part
+	bufferPointer = (int16_t*)secondLockedPart;
+	DWORD secondLockedSamples = secondLockedSize / audioInf->bytesPerSample;
+	for (DWORD iterator = 0; iterator < secondLockedSamples; ++iterator)
+	{
+		int16_t sampleValue;
+		if (audioInf->soundCounter / audioInf->halfPeriod % 2 == 0)
+		{
+			//case high wave
+			sampleValue = 250;
+		}
+		else
+		{
+			//case low wave
+			sampleValue = -250;
+		}
+		*bufferPointer++ = sampleValue;//left ear sample
+		*bufferPointer++ = sampleValue;//right ear sample
+		++audioInf->soundCounter;
+	}
 
+	HRESULT resUnlock = secondaryBuffer->Unlock(firstLockedPart, firstLockedSize,
+		secondLockedPart, secondLockedSize);
+	if (!SUCCEEDED(resUnlock))
+	{
+		//log error unlocking
+		return;
+	}
 }
 
 internal_function RectDimensions GetContextDimensions(HWND Window)
@@ -582,8 +676,20 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 		//check for creation error
 		if (WindowHandle)
 		{
+			HandmadeAudioInfo audioInf = {};
+			//initialize sound variables
+			audioInf.samplesPerSec = 48000;
+			audioInf.bufferSize = 48000 * 2 * sizeof(int16_t);
+			audioInf.cTonesPerSec = 256;//hz of C frequency
+			audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+			audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+			audioInf.bytesPerSample = 2 * sizeof(int16_t);
+
+			audioInf.soundCounter = 0;
+
 			//DirectSound loading
-			LoadSound(WindowHandle, 48000, 48000*2*sizeof(int16_t));
+			LoadSound(WindowHandle, audioInf.samplesPerSec, audioInf.bufferSize);
+			secondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
 			/*Window created, now we have to start a message loop since windows
 			does not do that by default. This loop treats all the messages that 
@@ -617,7 +723,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				renderGradient(BackBuffer, gradientXoffset, gradientYoffset);
 
 				//audio output function
-				PlayAudio();
+				HandmadePlaySound(&audioInf);
 
 				//actually paint the bitmap
 				//first we get device context
