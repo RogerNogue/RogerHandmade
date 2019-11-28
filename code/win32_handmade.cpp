@@ -333,7 +333,7 @@ internal_function void HandmadePlaySound()
 	DWORD lockOffset;
 	if (audioInf.startOver)
 	{
-		lockOffset = writeCursor;
+		audioInf.soundCounter = lockOffset = writeCursor;
 		audioInf.startOver = false;
 	}
 	else
@@ -364,6 +364,7 @@ internal_function void HandmadePlaySound()
 	if (!SUCCEEDED(resLock))
 	{
 		//TODO: log error locking buffer
+		OutputDebugStringA("ERROR LOCK");
 		return;
 	}
 	//fill buffer at first locked part
@@ -412,7 +413,8 @@ internal_function void HandmadePlaySound()
 		secondLockedPart, secondLockedSize);
 	if (!SUCCEEDED(resUnlock))
 	{
-		//log error unlocking
+		//TODO: log error unlocking
+		OutputDebugStringA("ERROR UNLOCK");
 		return;
 	}
 }
