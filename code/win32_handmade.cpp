@@ -43,6 +43,7 @@ struct HandmadeAudioInfo
 	int32_t halfPeriod;
 	int32_t bytesPerSample;
 	uint32_t soundCounter;
+	bool startOver;
 };
 
 //static auto declares to 0
@@ -329,7 +330,16 @@ internal_function void HandmadePlaySound()
 		return;
 	}
 	//lockOffset is the size from the start to the point where lock begins
-	DWORD lockOffset = audioInf.soundCounter*audioInf.bytesPerSample % audioInf.bufferSize;
+	DWORD lockOffset;
+	if (audioInf.startOver)
+	{
+		lockOffset = writeCursor;
+		audioInf.startOver = false;
+	}
+	else
+	{
+		lockOffset = audioInf.soundCounter * audioInf.bytesPerSample % audioInf.bufferSize;
+	}
 	DWORD bytesToWrite = 0;
 	if (lockOffset > playCursor)
 	{
@@ -474,6 +484,11 @@ internal_function void HandmadeUpdateWindow(const BufferData& Buffer, HDC Device
 		DIB_RGB_COLORS, SRCCOPY);
 }
 
+bool ChangedTone(int32_t A, int32_t B)
+{
+	return (A != B);
+}
+
 //Since it is an "Application-defined function" we gotta define it
 LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 												UINT   Message,
@@ -522,6 +537,7 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 			//checking keys
 			if (wasPressed && !isReleased)
 			{
+				int32_t previousTone = audioInf.cTonesPerSec;
 				if (Wparam == VK_ESCAPE)
 				{
 					OutputDebugStringA("Escape");
@@ -577,6 +593,13 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
 				}
+				if (Wparam == 'X')
+				{
+					OutputDebugStringA("X");
+					audioInf.cTonesPerSec = 523;//C, Do
+					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+				}
 				if (Wparam == VK_SPACE)
 				{
 					OutputDebugStringA("SPACEBAR");
@@ -604,6 +627,7 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 						GLOBAL_GameRunning = false;
 					}
 				}
+				audioInf.startOver = ChangedTone(previousTone, audioInf.cTonesPerSec);
 			}
 		}
 		break;
