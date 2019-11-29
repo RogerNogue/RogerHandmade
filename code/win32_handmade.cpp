@@ -43,6 +43,7 @@ struct HandmadeAudioInfo
 	int32_t halfPeriod;
 	int32_t bytesPerSample;
 	uint32_t soundCounter;
+	uint16_t soundVolume;
 	bool startOver;
 };
 
@@ -376,12 +377,12 @@ internal_function void HandmadePlaySound()
 		if (audioInf.soundCounter / audioInf.halfPeriod % 2 == 0)
 		{
 			//case high wave
-			sampleValue = 250;
+			sampleValue = audioInf.soundVolume;
 		}
 		else
 		{
 			//case low wave
-			sampleValue = -250;
+			sampleValue = -audioInf.soundVolume;
 		}
 		
 		*bufferPointer++ = sampleValue;//left ear sample
@@ -397,12 +398,12 @@ internal_function void HandmadePlaySound()
 		if (audioInf.soundCounter / audioInf.halfPeriod % 2 == 0)
 		{
 			//case high wave
-			sampleValue = 250;
+			sampleValue = audioInf.soundVolume;
 		}
 		else
 		{
 			//case low wave
-			sampleValue = -250;
+			sampleValue = -audioInf.soundVolume;
 		}
 		*bufferPointer++ = sampleValue;//left ear sample
 		*bufferPointer++ = sampleValue;//right ear sample
@@ -738,6 +739,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 			audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
 			audioInf.bytesPerSample = 2 * sizeof(int16_t);
+			audioInf.soundVolume = 150;
 
 			audioInf.soundCounter = 0;
 
