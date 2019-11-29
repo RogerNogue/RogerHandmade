@@ -368,32 +368,17 @@ internal_function void HandmadePlaySound()
 		OutputDebugStringA("ERROR LOCK");
 		return;
 	}
-	//fill buffer at first locked part
+	//fill buffer
 	int16_t* bufferPointer = (int16_t*)firstLockedPart;
 	DWORD firstLockedSamples = firstLockedSize / audioInf.bytesPerSample;
-	for (DWORD iterator = 0; iterator < firstLockedSamples; ++iterator)
-	{
-		int16_t sampleValue;
-		if (audioInf.soundCounter / audioInf.halfPeriod % 2 == 0)
-		{
-			//case high wave
-			sampleValue = audioInf.soundVolume;
-		}
-		else
-		{
-			//case low wave
-			sampleValue = -audioInf.soundVolume;
-		}
-		
-		*bufferPointer++ = sampleValue;//left ear sample
-		*bufferPointer++ = sampleValue;//right ear sample
-		++audioInf.soundCounter;
-	}
-	//fill buffer at second locked part
-	bufferPointer = (int16_t*)secondLockedPart;
 	DWORD secondLockedSamples = secondLockedSize / audioInf.bytesPerSample;
-	for (DWORD iterator = 0; iterator < secondLockedSamples; ++iterator)
+	for (DWORD iterator = 0; iterator < (firstLockedSamples+secondLockedSamples); ++iterator)
 	{
+		//in case first part is full, start filling the second part(second part is beggining of the buffer)
+		if (iterator == firstLockedSamples)
+		{
+			bufferPointer = (int16_t*)secondLockedPart;
+		}
 		int16_t sampleValue;
 		if (audioInf.soundCounter / audioInf.halfPeriod % 2 == 0)
 		{
@@ -405,6 +390,7 @@ internal_function void HandmadePlaySound()
 			//case low wave
 			sampleValue = -audioInf.soundVolume;
 		}
+
 		*bufferPointer++ = sampleValue;//left ear sample
 		*bufferPointer++ = sampleValue;//right ear sample
 		++audioInf.soundCounter;
