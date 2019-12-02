@@ -12,9 +12,13 @@
 #include <xinput.h>
 #include <dsound.h>
 
+#include <math.h>//may want to remove this in the future implementing our own stuff
+
 #define internal_function static
 #define local_persistent static
 #define global_variable static
+
+#define Pi32 3.14159265359f
 
 typedef int32_t bool32;
 
@@ -39,12 +43,12 @@ struct HandmadeAudioInfo
 	int32_t samplesPerSec;
 	int32_t bufferSize;
 	int32_t cTonesPerSec;//hz of C frequency
-	int32_t squareWavePeriod;
-	int32_t halfPeriod;
+	int32_t period;
 	int32_t bytesPerSample;
 	uint32_t soundCounter;
 	uint16_t soundVolume;
 	bool startOver;
+	bool firstLoop;
 };
 
 //static auto declares to 0
@@ -331,22 +335,26 @@ internal_function void HandmadePlaySound()
 		return;
 	}
 	//lockOffset is the size from the start to the point where lock begins
-	DWORD lockOffset;
+	DWORD lockOffset= (audioInf.soundCounter * audioInf.bytesPerSample) % audioInf.bufferSize;
+	DWORD bytesToWrite = 0;
 	if (audioInf.startOver)
 	{
 		audioInf.soundCounter = lockOffset = writeCursor;
 		audioInf.startOver = false;
 	}
-	else
+	if (lockOffset == playCursor)
 	{
-		lockOffset = audioInf.soundCounter * audioInf.bytesPerSample % audioInf.bufferSize;
-		/*if (lockOffset == playCursor)
+		if (audioInf.firstLoop)
 		{
-			audioInf.soundCounter = lockOffset = writeCursor;
-		}*/
+			bytesToWrite = audioInf.bufferSize;
+			audioInf.firstLoop = false;
+		}
+		else
+		{
+			bytesToWrite = 0;
+		}
 	}
-	DWORD bytesToWrite = 0;
-	if (lockOffset > playCursor)
+	else if (lockOffset > playCursor)
 	{
 		//case we are in front of write cursor
 		bytesToWrite = audioInf.bufferSize - lockOffset + playCursor;
@@ -355,10 +363,6 @@ internal_function void HandmadePlaySound()
 	{
 		//case we are behind write cursor
 		bytesToWrite = playCursor - lockOffset;
-	}
-	if (bytesToWrite == 0)
-	{
-		return;
 	}
 	VOID* firstLockedPart;
 	VOID* secondLockedPart;
@@ -383,17 +387,9 @@ internal_function void HandmadePlaySound()
 		{
 			bufferPointer = (int16_t*)secondLockedPart;
 		}
-		int16_t sampleValue;
-		if (audioInf.soundCounter / audioInf.halfPeriod % 2 == 0)
-		{
-			//case high wave
-			sampleValue = audioInf.soundVolume;
-		}
-		else
-		{
-			//case low wave
-			sampleValue = -audioInf.soundVolume;
-		}
+		float sinParameter = (audioInf.soundCounter * 2.0f * Pi32 / (float)audioInf.period);
+		float sinResult = sinf(sinParameter);
+		int16_t sampleValue = (int16_t)(sinResult * audioInf.soundVolume);
 
 		*bufferPointer++ = sampleValue;//left ear sample
 		*bufferPointer++ = sampleValue;//right ear sample
@@ -539,59 +535,51 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 				{
 					OutputDebugStringA("Q");
 					audioInf.cTonesPerSec = 261;//C, Do
-					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 				}
 				if (Wparam == 'W')
 				{
 					OutputDebugStringA("W");
 					audioInf.cTonesPerSec = 293;//D, Re
-					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 				}
 				if (Wparam == 'E')
 				{
 					OutputDebugStringA("E");
 					audioInf.cTonesPerSec = 329;//E, Mi
-					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 					
 				}
 				if (Wparam == 'A')
 				{
 					OutputDebugStringA("A");
 					audioInf.cTonesPerSec = 349;//F, Fa
-					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 					
 				}
 				if (Wparam == 'S')
 				{
 					OutputDebugStringA("S");
 					audioInf.cTonesPerSec = 392;//G, Sol
-					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 				}
 				if (Wparam == 'D')
 				{
 					OutputDebugStringA("D");
 					audioInf.cTonesPerSec = 440;//A, La
-					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 				}
 				if (Wparam == 'Z')
 				{
 					OutputDebugStringA("Z");
 					audioInf.cTonesPerSec = 493;//B, Si
-					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 				}
 				if (Wparam == 'X')
 				{
 					OutputDebugStringA("X");
 					audioInf.cTonesPerSec = 523;//C, Do
-					audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-					audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 				}
 				if (Wparam == VK_SPACE)
 				{
@@ -726,11 +714,11 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			audioInf.samplesPerSec = 48000;
 			audioInf.bufferSize = 48000 * 2 * sizeof(int16_t);
 			audioInf.cTonesPerSec = 261;//hz of C frequency
-			audioInf.squareWavePeriod = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-			audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
+			audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 			audioInf.bytesPerSample = 2 * sizeof(int16_t);
-			audioInf.soundVolume = 150;
-			audioInf.startOver = true;
+			audioInf.soundVolume = 500;
+			audioInf.startOver = false;
+			audioInf.firstLoop = true;
 
 			audioInf.soundCounter = 0;
 
