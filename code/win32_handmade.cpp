@@ -340,6 +340,10 @@ internal_function void HandmadePlaySound()
 	else
 	{
 		lockOffset = audioInf.soundCounter * audioInf.bytesPerSample % audioInf.bufferSize;
+		/*if (lockOffset == playCursor)
+		{
+			audioInf.soundCounter = lockOffset = writeCursor;
+		}*/
 	}
 	DWORD bytesToWrite = 0;
 	if (lockOffset > playCursor)
@@ -726,6 +730,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			audioInf.halfPeriod = audioInf.squareWavePeriod / 2;
 			audioInf.bytesPerSample = 2 * sizeof(int16_t);
 			audioInf.soundVolume = 150;
+			audioInf.startOver = true;
 
 			audioInf.soundCounter = 0;
 
