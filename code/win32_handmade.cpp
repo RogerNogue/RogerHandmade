@@ -708,7 +708,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			audioInf = {};
 			//initialize sound variables
 			audioInf.samplesPerSec = 48000;
-			audioInf.bufferSize = 48000 * 2 * sizeof(int16_t);
+			audioInf.bufferSize = 48000 * 2 * sizeof(int16_t); //2 seconds of sound
 			audioInf.cTonesPerSec = 261;//hz of C frequency
 			audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 			audioInf.bytesPerSample = 2 * sizeof(int16_t);
