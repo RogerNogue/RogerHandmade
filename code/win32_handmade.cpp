@@ -530,6 +530,7 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 				if (Wparam == VK_ESCAPE)
 				{
 					OutputDebugStringA("Escape");
+					GLOBAL_GameRunning = false;
 				}
 				if (Wparam == 'Q')
 				{
