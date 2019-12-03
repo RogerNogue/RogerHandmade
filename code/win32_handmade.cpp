@@ -337,32 +337,27 @@ internal_function void HandmadePlaySound()
 	//lockOffset is the size from the start to the point where lock begins
 	DWORD lockOffset= (audioInf.soundCounter * audioInf.bytesPerSample) % audioInf.bufferSize;
 	DWORD bytesToWrite = 0;
-	if (audioInf.startOver)
+	if (audioInf.firstLoop)
 	{
 		audioInf.soundCounter = lockOffset = writeCursor;
-		audioInf.startOver = false;
+		bytesToWrite = audioInf.samplesPerSec*0.20;//we fill 0.20 secs of sound
+		audioInf.firstLoop = false;
 	}
-	if (lockOffset == playCursor)
+	DWORD difflockWrite = lockOffset - writeCursor;
+	if (difflockWrite < 0)
 	{
-		if (audioInf.firstLoop)
-		{
-			bytesToWrite = audioInf.bufferSize;
-			audioInf.firstLoop = false;
-		}
-		else
-		{
-			bytesToWrite = 0;
-		}
+		//case we went back to the beggining of the buffer
+		difflockWrite = audioInf.bufferSize - writeCursor + lockOffset;
 	}
-	else if (lockOffset > playCursor)
+	if ((difflockWrite) < (audioInf.samplesPerSec * 0.15))
 	{
-		//case we are in front of write cursor
-		bytesToWrite = audioInf.bufferSize - lockOffset + playCursor;
+		bytesToWrite = audioInf.samplesPerSec * 0.20;//we fill 0.20 secs of sound
+
 	}
 	else
 	{
-		//case we are behind write cursor
-		bytesToWrite = playCursor - lockOffset;
+		//nothing to write, we just quit
+		return;
 	}
 	VOID* firstLockedPart;
 	VOID* secondLockedPart;
