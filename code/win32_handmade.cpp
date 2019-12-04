@@ -46,6 +46,7 @@ struct HandmadeAudioInfo
 	int32_t period;
 	int32_t bytesPerSample;
 	uint32_t soundCounter;
+	float sineValue;
 	uint16_t soundVolume;
 	bool startOver;
 	bool firstLoop;
@@ -382,13 +383,19 @@ internal_function void HandmadePlaySound()
 		{
 			bufferPointer = (int16_t*)secondLockedPart;
 		}
-		float sinParameter = (audioInf.soundCounter * 2.0f * Pi32 / (float)audioInf.period);
-		float sinResult = sinf(sinParameter);
+		float sinResult = sinf(audioInf.sineValue);
 		int16_t sampleValue = (int16_t)(sinResult * audioInf.soundVolume);
 
 		*bufferPointer++ = sampleValue;//left ear sample
 		*bufferPointer++ = sampleValue;//right ear sample
 		++audioInf.soundCounter;
+		audioInf.sineValue += 2.0f * Pi32 / (float)audioInf.period;
+		if (audioInf.sineValue > 64000.0 )
+		{
+			OutputDebugStringA("restarted Sin count\n");
+			audioInf.sineValue = asinf(sinResult);
+		}
+		
 	}
 
 	HRESULT resUnlock = secondaryBuffer->Unlock(firstLockedPart, firstLockedSize,
@@ -712,11 +719,9 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			audioInf.cTonesPerSec = 261;//hz of C frequency
 			audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
 			audioInf.bytesPerSample = 2 * sizeof(int16_t);
-			audioInf.soundVolume = 500;
+			audioInf.soundVolume = 2000;
 			audioInf.startOver = false;
 			audioInf.firstLoop = true;
-
-			audioInf.soundCounter = 0;
 
 			//DirectSound loading
 			LoadSound(WindowHandle, audioInf.samplesPerSec, audioInf.bufferSize);
