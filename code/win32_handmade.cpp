@@ -180,6 +180,10 @@ internal_function void loadControllerLib()
 	{
 		loadStatus = LoadLibrary("Xinput1_3.dll");
 	}
+	if (!loadStatus)
+	{
+		loadStatus = LoadLibrary("Xinput9_1_0.dll");
+	}
 	if (loadStatus)
 	{
 		//now we load the function
