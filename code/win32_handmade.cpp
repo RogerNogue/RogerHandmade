@@ -397,6 +397,7 @@ internal_function void HandmadePlaySound()
 		audioInf.sineValue += 2.0f * Pi32 / (float)audioInf.period;
 		if (audioInf.sineValue > 64000.0 )
 		{
+			//in case sine value gets too big, we lower it maintaining the result.
 			OutputDebugStringA("restarted Sin count\n");
 			audioInf.sineValue = asinf(sinResult);
 		}
