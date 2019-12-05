@@ -356,6 +356,7 @@ internal_function void HandmadePlaySound()
 	}
 	if ((difflockWrite) < (audioInf.samplesPerSec * 0.15))
 	{
+		//case we have to write since play cursor is catching up
 		bytesToWrite = audioInf.samplesPerSec * 0.20;//we fill 0.20 secs of sound
 
 	}
