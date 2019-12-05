@@ -12,6 +12,8 @@
 #include <xinput.h>
 #include <dsound.h>
 
+#include<iostream>//c runtime lib for debugging and printing purposes
+
 #include <math.h>//may want to remove this in the future implementing our own stuff
 
 #define internal_function static
@@ -742,6 +744,20 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			int gradientXoffset = 0;
 			int gradientYoffset = 0;
 			//we dont pass the window handle since we want to treat ALL the messages sent to us, not just to the window
+
+			//timers setup
+			//first we get the frequency
+			LARGE_INTEGER queryFreq = {};
+			QueryPerformanceFrequency(&queryFreq);
+
+			//now get counter for first iteration
+			LARGE_INTEGER prevCounter = {};
+			QueryPerformanceCounter(&prevCounter);
+			LARGE_INTEGER currentCounter = {};
+
+			int64_t prevCycleCounter = __rdtsc();
+			int64_t currCycleCounter = 0;
+
 			while (GLOBAL_GameRunning)
 			{
 				//BOOL returnValue = GetMessageA(&Message, 0, 0, 0);
@@ -778,6 +794,29 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				++gradientYoffset;*/
 				//release device context
 				ReleaseDC(WindowHandle, WindowContext);
+
+				//timer calculation and output
+				
+				//time
+				QueryPerformanceCounter(&currentCounter);
+				int64_t counterDiff = currentCounter.QuadPart - prevCounter.QuadPart;
+				float milsecsPerFrame = (float)counterDiff * 1000 / (float)queryFreq.QuadPart;
+				float fps = 1 / (milsecsPerFrame / 1000);
+
+				//cycle
+				int64_t currCycleCounter = __rdtsc();
+				int64_t cycleDiff = currCycleCounter - prevCycleCounter;
+				float iterMCycles = (float)cycleDiff/(1000.0*1000.0);
+				
+				//output
+				char Buffer[256];
+				sprintf(Buffer, "%0.2f miliseconds, %0.2f fps, %0.2f mega cycles\n", milsecsPerFrame, fps, iterMCycles);
+				OutputDebugStringA(Buffer);
+
+				//update prev timer to be the current
+				prevCounter = currentCounter;
+				prevCycleCounter = currCycleCounter;
+
 			}
 		}
 		else
