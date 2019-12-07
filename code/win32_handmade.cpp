@@ -805,7 +805,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 
 				//cycle
 				uint64_t currCycleCounter = __rdtsc();
-				int64_t cycleDiff = currCycleCounter - prevCycleCounter;
+				uint64_t cycleDiff = currCycleCounter - prevCycleCounter;
 				float iterMCycles = (float)cycleDiff/(1000.0*1000.0);
 				
 				//output
