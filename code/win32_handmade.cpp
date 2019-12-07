@@ -755,7 +755,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			QueryPerformanceCounter(&prevCounter);
 			LARGE_INTEGER currentCounter = {};
 
-			int64_t prevCycleCounter = __rdtsc();
+			uint64_t prevCycleCounter = __rdtsc();
 			int64_t currCycleCounter = 0;
 
 			while (GLOBAL_GameRunning)
@@ -804,7 +804,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				float fps = 1 / (milsecsPerFrame / 1000);
 
 				//cycle
-				int64_t currCycleCounter = __rdtsc();
+				uint64_t currCycleCounter = __rdtsc();
 				int64_t cycleDiff = currCycleCounter - prevCycleCounter;
 				float iterMCycles = (float)cycleDiff/(1000.0*1000.0);
 				
