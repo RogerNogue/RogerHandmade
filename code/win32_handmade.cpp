@@ -800,13 +800,13 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				//time
 				QueryPerformanceCounter(&currentCounter);
 				int64_t counterDiff = currentCounter.QuadPart - prevCounter.QuadPart;
-				float milsecsPerFrame = (float)counterDiff * 1000 / (float)queryFreq.QuadPart;
-				float fps = 1 / (milsecsPerFrame / 1000);
+				float milsecsPerFrame = (float)counterDiff * 1000.0f / (float)queryFreq.QuadPart;
+				float fps = 1.0f / (milsecsPerFrame / 1000.0f);
 
 				//cycle
 				uint64_t currCycleCounter = __rdtsc();
 				uint64_t cycleDiff = currCycleCounter - prevCycleCounter;
-				float iterMCycles = (float)cycleDiff/(1000.0*1000.0);
+				float iterMCycles = (float)cycleDiff/(1000.0f*1000.0f);
 				
 				//output
 				char Buffer[256];
