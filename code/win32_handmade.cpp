@@ -36,10 +36,6 @@ Future mostly needed implementations
 
 */
 
-#define internal_function static
-#define local_persistent static
-#define global_variable static
-
 #define Pi32 3.14159265359f
 
 typedef int32_t bool32;
@@ -311,45 +307,6 @@ internal_function void ControllerInputTreating(int* offsetX, int* offsetY)
 		}
 	}
 
-}
-
-//function that paints a gradient
-internal_function void renderGradient(const BufferData& Buffer, int gradXOffset, int gradYOffset)
-{
-	//lets paint pixels, first we call a small raw pointer to manage memory
-	//row has to be in bytes, if not when we do pointer arithmetic we would
-	//increase the pointer way more space than we need and problems would occur.
-	uint8_t* row = (uint8_t*)Buffer.BufferMemory;
-
-	for (int i = 0; i < Buffer.BufferHeight; ++i)
-	{
-		uint32_t* pixel = (uint32_t*)row;
-		for (int j = 0; j < Buffer.BufferWidth; ++j)
-		{
-			/*
-			IMPORTANT! MEM explanation
-			Little endian architecture: the first byte goes to the last part and so on.
-			
-			REASON: you have to store it BB GG RR XX because then when windows load the pixel,
-			they want it to be seen as XX RR GG BB.
-
-			and to have in mem BB GG RR XX, you need in the uint32: 0x XX RR GG BB.
-			
-			If we did it by uint8, we would have to first store BB at the first byte, then GG,
-			then RR, and finally XX.
-			*/
-
-			//now we paint the pixel in a more direct manner
-			uint8_t R = (uint8_t)i + gradYOffset;
-			uint8_t G = (uint8_t)j + gradXOffset;
-			uint8_t B = (uint8_t)(gradXOffset + gradYOffset);
-
-			//we store it as said above
-			*pixel = (uint32_t)(B | (G << 8) | (R<<16));
-			++pixel;
-		}
-		row += Buffer.Pitch;
-	}
 }
 
 internal_function void HandmadePlaySound()
@@ -755,6 +712,14 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			LoadSound(WindowHandle, audioInf.samplesPerSec, audioInf.bufferSize);
 			secondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
+			//get our rendering Buffer going:
+			RenderBufferData renderingBuffer;
+			renderingBuffer.BufferMemory = BackBuffer.BufferMemory;
+			renderingBuffer.BufferWidth = BackBuffer.BufferWidth;
+			renderingBuffer.BufferHeight = BackBuffer.BufferHeight;
+			renderingBuffer.Pitch = BackBuffer.Pitch;
+			renderingBuffer.BytesPerPixel = BackBuffer.BytesPerPixel;
+
 			/*Window created, now we have to start a message loop since windows
 			does not do that by default. This loop treats all the messages that 
 			windows sends to our window application*/
@@ -798,7 +763,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 
 				//our gameloop
 				//update our bitmap
-				renderGradient(BackBuffer, gradientXoffset, gradientYoffset);
+				GameUpdateAndRender(&renderingBuffer, gradientXoffset, gradientYoffset);
 
 				//audio output function
 				HandmadePlaySound();
