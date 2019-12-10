@@ -12,9 +12,29 @@
 #include <xinput.h>
 #include <dsound.h>
 
+#include "handmade.cpp"
+
 #include<iostream>//c runtime lib for debugging and printing purposes
 
 #include <math.h>//may want to remove this in the future implementing our own stuff
+
+/*
+Future mostly needed implementations
+- Saved game locations
+- getting a handle to our own exec file
+- asset loading path
+- threading
+- raw input (support for multiple keyboards)
+- sleep/timeBeginPeriod (for laptops and stuffs to save battery)
+- ClipCursor() (Multimonitor support)
+- WM_SETCURSOR (control cursor visibility)
+- QueryCancelAutoplay
+-WM_ACTIVATEAPP (for when we are not the active app)
+- Blit speed improvements (BitBlt)
+- Hardware acceleration (OpenGL or Direct3D or both)
+- GetKeyboardLayout (for French keyboards, international WASD support)
+
+*/
 
 #define internal_function static
 #define local_persistent static
