@@ -16,8 +16,6 @@
 
 #include<iostream>//c runtime lib for debugging and printing purposes
 
-#include <math.h>//may want to remove this in the future implementing our own stuff
-
 /*
 Future mostly needed implementations
 - Saved game locations
@@ -35,8 +33,6 @@ Future mostly needed implementations
 - GetKeyboardLayout (for French keyboards, international WASD support)
 
 */
-
-#define Pi32 3.14159265359f
 
 typedef int32_t bool32;
 
@@ -188,6 +184,43 @@ internal_function void LoadSound(HWND window, int32_t samplesPerSec, int32_t buf
 		return;
 	}
 	
+}
+//sets the sound buffer contents to 0
+internal_function void flushSoundBuffer()
+{
+	VOID* firstLockedPart;
+	VOID* secondLockedPart;
+	DWORD firstLockedSize;
+	DWORD secondLockedSize;
+	HRESULT resLock = secondaryBuffer->Lock(0, audioInf.bufferSize, &firstLockedPart, &firstLockedSize,
+		&secondLockedPart, &secondLockedSize, 0);
+	if (!SUCCEEDED(resLock))
+	{
+		//TODO: log error locking buffer
+		OutputDebugStringA("ERROR LOCK");
+		return;
+	}
+	
+	uint8_t* iterPointer = (uint8_t*)firstLockedPart;
+	for (DWORD iterator = 0; iterator < (firstLockedSize + secondLockedSize); ++iterator)
+	{
+		//in case first part is full, start filling the second part(second part is beggining of the buffer)
+		if (iterator == firstLockedSize)
+		{
+			iterPointer = (uint8_t*)secondLockedPart;
+		}
+		*iterPointer++ = 0;//left ear sample
+		*iterPointer++ = 0;//right ear sample
+	}
+
+	HRESULT resUnlock = secondaryBuffer->Unlock(firstLockedPart, firstLockedSize,
+		secondLockedPart, secondLockedSize);
+	if (!SUCCEEDED(resUnlock))
+	{
+		//TODO: log error unlocking
+		OutputDebugStringA("ERROR UNLOCK");
+		return;
+	}
 }
 
 internal_function void loadControllerLib()
@@ -710,7 +743,10 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 
 			//DirectSound loading
 			LoadSound(WindowHandle, audioInf.samplesPerSec, audioInf.bufferSize);
+			flushSoundBuffer();
 			secondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
+
+			SoundData gameSoundInfo = {};
 
 			//get our rendering Buffer going:
 			RenderBufferData renderingBuffer;
@@ -763,7 +799,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 
 				//our gameloop
 				//update our bitmap
-				GameUpdateAndRender(&renderingBuffer, gradientXoffset, gradientYoffset);
+				GameUpdateAndRender(&renderingBuffer, gradientXoffset, gradientYoffset, &gameSoundInfo);
 
 				//audio output function
 				HandmadePlaySound();
