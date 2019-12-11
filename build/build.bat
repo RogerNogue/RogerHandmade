@@ -1,7 +1,7 @@
 @REM this line turns off prints. The @ makes this own line not being printed too
 @echo off
 
-mkdir C:\Users\Roger\Desktop\Roger\handmade\buildStuff
+IF NOT EXIST C:\Users\Roger\Desktop\Roger\handmade\buildStuff mkdir C:\Users\Roger\Desktop\Roger\handmade\buildStuff
 REM popd removes pushd makings
 pushd C:\Users\Roger\Desktop\Roger\handmade\buildStuff
 REM "-Wall" flag to print all warnings
