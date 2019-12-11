@@ -5,6 +5,8 @@
 #define local_persistent static
 #define global_variable static
 
+#define Pi32 3.14159265359f
+
 struct RenderBufferData
 {
 	void* BufferMemory;
@@ -14,6 +16,12 @@ struct RenderBufferData
 	int BytesPerPixel;
 };
 
-internal_function void GameUpdateAndRender();
+struct SoundData
+{
+	int16_t* bufferPointer;
+	uint32_t sizeToWrite;
+	uint16_t soundVolume;
+	int32_t period;
+};
 
 #endif

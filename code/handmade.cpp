@@ -1,8 +1,29 @@
 
 #include "handmade.h"
 
+#include <math.h>//may want to remove this in the future implementing our own stuff
+
+internal_function void generateSound(SoundData* soundInfo)
+{
+	local_persistent float sineValue;
+	for (uint32_t iterator = 0; iterator < soundInfo->sizeToWrite; ++iterator)
+	{
+		float sinResult = sinf(sineValue);
+		int16_t sampleValue = (int16_t)(sinResult * soundInfo->soundVolume);
+
+		*soundInfo->bufferPointer++ = sampleValue;//left ear sample
+		*soundInfo->bufferPointer++ = sampleValue;//right ear sample
+		sineValue += 2.0f * Pi32 / (float)soundInfo->period;
+		if (sineValue > 64000.0)
+		{
+			//in case sine value gets too big, we lower it maintaining the result.
+			sineValue = asinf(sinResult);
+		}
+	}
+}
+
 //function that paints a gradient
-void renderGradient(const RenderBufferData* Buffer, int gradXOffset, int gradYOffset)
+internal_function void renderGradient(const RenderBufferData* Buffer, int gradXOffset, int gradYOffset)
 {
 	//lets paint pixels, first we call a small raw pointer to manage memory
 	//row has to be in bytes, if not when we do pointer arithmetic we would
@@ -40,7 +61,8 @@ void renderGradient(const RenderBufferData* Buffer, int gradXOffset, int gradYOf
 	}
 }
 
-void GameUpdateAndRender(RenderBufferData* buffer, int gradXOffset, int gradYOffset)
+internal_function void GameUpdateAndRender(RenderBufferData* buffer, int gradXOffset, int gradYOffset, SoundData* soundInfo)
 {
+	generateSound(soundInfo);
 	renderGradient(buffer, gradXOffset, gradYOffset);
 }
