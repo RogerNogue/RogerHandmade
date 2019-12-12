@@ -3,17 +3,19 @@
 
 #include <math.h>//may want to remove this in the future implementing our own stuff
 
-internal_function void generateSound(SoundData* soundInfo)
+internal_function void generateSound(SoundData* soundInfo, int32_t period)
 {
 	local_persistent float sineValue;
-	for (uint32_t iterator = 0; iterator < soundInfo->sizeToWrite; ++iterator)
+	int16_t* localBufferPointer = soundInfo->bufferPointer;
+	uint32_t pairsOfSamplesToWrite = soundInfo->sizeToWrite / 4;
+	for (uint32_t iterator = 0; iterator < pairsOfSamplesToWrite; ++iterator)
 	{
 		float sinResult = sinf(sineValue);
 		int16_t sampleValue = (int16_t)(sinResult * soundInfo->soundVolume);
 
-		*soundInfo->bufferPointer++ = sampleValue;//left ear sample
-		*soundInfo->bufferPointer++ = sampleValue;//right ear sample
-		sineValue += 2.0f * Pi32 / (float)soundInfo->period;
+		*localBufferPointer++ = sampleValue;//left ear sample
+		*localBufferPointer++ = sampleValue;//right ear sample
+		sineValue += 2.0f * Pi32 / (float)period;
 		if (sineValue > 64000.0)
 		{
 			//in case sine value gets too big, we lower it maintaining the result.
@@ -61,8 +63,8 @@ internal_function void renderGradient(const RenderBufferData* Buffer, int gradXO
 	}
 }
 
-internal_function void GameUpdateAndRender(RenderBufferData* buffer, int gradXOffset, int gradYOffset, SoundData* soundInfo)
+internal_function void GameUpdateAndRender(RenderBufferData* buffer, int gradXOffset, int gradYOffset, SoundData* soundInfo, int32_t period)
 {
-	generateSound(soundInfo);
+	generateSound(soundInfo, period);
 	renderGradient(buffer, gradXOffset, gradYOffset);
 }

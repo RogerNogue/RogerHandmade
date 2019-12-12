@@ -60,10 +60,11 @@ struct HandmadeAudioInfo
 	int32_t period;
 	int32_t bytesPerSample;
 	uint32_t soundCounter;
-	float sineValue;
 	uint16_t soundVolume;
 	bool startOver;
 	bool firstLoop;
+	int32_t lockOffset;
+	int32_t bytesToWrite;
 };
 
 //static auto declares to 0
@@ -209,8 +210,8 @@ internal_function void flushSoundBuffer()
 		{
 			iterPointer = (uint8_t*)secondLockedPart;
 		}
-		*iterPointer++ = 0;//left ear sample
-		*iterPointer++ = 0;//right ear sample
+		*iterPointer = 0;
+		++iterPointer;
 	}
 
 	HRESULT resUnlock = secondaryBuffer->Unlock(firstLockedPart, firstLockedSize,
@@ -342,7 +343,7 @@ internal_function void ControllerInputTreating(int* offsetX, int* offsetY)
 
 }
 
-internal_function void HandmadePlaySound()
+internal_function void HandmadeGetSoundWritingValues()
 {
 	DWORD playCursor = 0;
 	DWORD writeCursor = 0;
@@ -352,24 +353,25 @@ internal_function void HandmadePlaySound()
 		return;
 	}
 	//lockOffset is the size from the start to the point where lock begins
-	DWORD lockOffset= (audioInf.soundCounter * audioInf.bytesPerSample) % audioInf.bufferSize;
-	DWORD bytesToWrite = 0;
+	audioInf.lockOffset = (audioInf.soundCounter * audioInf.bytesPerSample) % audioInf.bufferSize;
+	audioInf.bytesToWrite = 0;
 	if (audioInf.firstLoop)
 	{
-		audioInf.soundCounter = lockOffset = writeCursor;
-		bytesToWrite = audioInf.samplesPerSec*0.20;//we fill 0.20 secs of sound
+		audioInf.soundCounter = audioInf.lockOffset = playCursor;
+		audioInf.bytesToWrite = audioInf.samplesPerSec * 0.50;//we fill 0.50 secs of sound
 		audioInf.firstLoop = false;
+		return;
 	}
-	DWORD difflockWrite = lockOffset - writeCursor;
+	DWORD difflockWrite = (DWORD)audioInf.lockOffset - writeCursor;
 	if (difflockWrite < 0)
 	{
 		//case we went back to the beggining of the buffer
-		difflockWrite = audioInf.bufferSize - writeCursor + lockOffset;
+		difflockWrite = audioInf.bufferSize - writeCursor + audioInf.lockOffset;
 	}
 	if ((difflockWrite) < (audioInf.samplesPerSec * 0.15))
 	{
 		//case we have to write since play cursor is catching up
-		bytesToWrite = audioInf.samplesPerSec * 0.20;//we fill 0.20 secs of sound
+		audioInf.bytesToWrite = audioInf.samplesPerSec * 0.20;//we fill 0.20 secs of sound
 
 	}
 	else
@@ -377,11 +379,14 @@ internal_function void HandmadePlaySound()
 		//nothing to write, we just quit
 		return;
 	}
+}
+internal_function void HandmadeWriteInSoundBuffer(SoundData* soundInfo)
+{
 	VOID* firstLockedPart;
 	VOID* secondLockedPart;
 	DWORD firstLockedSize;
 	DWORD secondLockedSize;
-	HRESULT resLock = secondaryBuffer->Lock(lockOffset, bytesToWrite, &firstLockedPart, &firstLockedSize,
+	HRESULT resLock = secondaryBuffer->Lock(audioInf.lockOffset, audioInf.bytesToWrite, &firstLockedPart, &firstLockedSize,
 		&secondLockedPart, &secondLockedSize, 0);
 	if (!SUCCEEDED(resLock))
 	{
@@ -391,8 +396,10 @@ internal_function void HandmadePlaySound()
 	}
 	//fill buffer
 	int16_t* bufferPointer = (int16_t*)firstLockedPart;
+	int16_t* gamePointer = (int16_t*)soundInfo->bufferPointer;
 	DWORD firstLockedSamples = firstLockedSize / audioInf.bytesPerSample;
 	DWORD secondLockedSamples = secondLockedSize / audioInf.bytesPerSample;
+
 	for (DWORD iterator = 0; iterator < (firstLockedSamples+secondLockedSamples); ++iterator)
 	{
 		//in case first part is full, start filling the second part(second part is beggining of the buffer)
@@ -400,19 +407,10 @@ internal_function void HandmadePlaySound()
 		{
 			bufferPointer = (int16_t*)secondLockedPart;
 		}
-		float sinResult = sinf(audioInf.sineValue);
-		int16_t sampleValue = (int16_t)(sinResult * audioInf.soundVolume);
 
-		*bufferPointer++ = sampleValue;//left ear sample
-		*bufferPointer++ = sampleValue;//right ear sample
+		*bufferPointer++ = *gamePointer++;//left ear sample
+		*bufferPointer++ = *gamePointer++;//right ear sample
 		++audioInf.soundCounter;
-		audioInf.sineValue += 2.0f * Pi32 / (float)audioInf.period;
-		if (audioInf.sineValue > 64000.0 )
-		{
-			//in case sine value gets too big, we lower it maintaining the result.
-			OutputDebugStringA("restarted Sin count\n");
-			audioInf.sineValue = asinf(sinResult);
-		}
 		
 	}
 
@@ -747,6 +745,8 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			secondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
 			SoundData gameSoundInfo = {};
+			//no need to free that since its gonna be used for the whole exec and then windows fill free for us
+			gameSoundInfo.bufferPointer = (int16_t*)VirtualAlloc(0, audioInf.bufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
 			//get our rendering Buffer going:
 			RenderBufferData renderingBuffer;
@@ -797,12 +797,16 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				//controller input checking 
 				ControllerInputTreating(&gradientXoffset, &gradientYoffset);
 
+				//get sound buffer info
+				HandmadeGetSoundWritingValues();
+				gameSoundInfo.sizeToWrite = audioInf.bytesToWrite;
+				gameSoundInfo.soundVolume = audioInf.soundVolume;
+
 				//our gameloop
-				//update our bitmap
-				GameUpdateAndRender(&renderingBuffer, gradientXoffset, gradientYoffset, &gameSoundInfo);
+				GameUpdateAndRender(&renderingBuffer, gradientXoffset, gradientYoffset, &gameSoundInfo, audioInf.period);
 
 				//audio output function
-				HandmadePlaySound();
+				HandmadeWriteInSoundBuffer(&gameSoundInfo);
 
 				//actually paint the bitmap
 				//first we get device context
