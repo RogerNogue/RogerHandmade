@@ -374,11 +374,6 @@ internal_function void HandmadeGetSoundWritingValues()
 		audioInf.bytesToWrite = audioInf.samplesPerSec * 0.20;//we fill 0.20 secs of sound
 
 	}
-	else
-	{
-		//nothing to write, we just quit
-		return;
-	}
 }
 internal_function void HandmadeWriteInSoundBuffer(SoundData* soundInfo)
 {
