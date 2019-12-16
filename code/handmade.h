@@ -24,6 +24,63 @@ struct SoundData
 	int32_t period;
 };
 
+struct ButtonState
+{
+	bool pressedAtEnd;
+	int32_t transitions;
+};
+
+struct ControllerInput
+{
+	//joysticks
+	float leftMaxX;
+	float leftMaxY;
+	float rightMaxX;
+	float rightMaxY;
+
+	float leftMinX;
+	float leftMinY;
+	float rightMinX;
+	float rightMinY;
+
+	float leftFinalX;
+	float leftFinalY;
+	float rightFinalX;
+	float rightFinalY;
+
+	//short 0-255, triggers
+	short leftTriggerMax;
+	short rightTriggerMax;
+
+	short leftTriggerMin;
+	short rightTriggerMin;
+
+	short leftTriggerFinal;
+	short rightTriggerFinal;
+
+	//simple buttons
+	union
+	{
+		ButtonState basicButtons[8];
+		struct
+		{
+			ButtonState up;
+			ButtonState down;
+			ButtonState left;
+			ButtonState right;
+			ButtonState start;
+			ButtonState back;
+			ButtonState leftShoulder;
+			ButtonState rightShoulder;
+		};
+	};
+};
+
+struct GameInput
+{
+	ControllerInput controllers[4];
+};
+
 internal_function void GameUpdateAndRender(RenderBufferData* buffer, int gradXOffset, int gradYOffset, SoundData* soundInfo, int32_t period);
 
 #endif
