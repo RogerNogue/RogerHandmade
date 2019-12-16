@@ -24,4 +24,6 @@ struct SoundData
 	int32_t period;
 };
 
+internal_function void GameUpdateAndRender(RenderBufferData* buffer, int gradXOffset, int gradYOffset, SoundData* soundInfo, int32_t period);
+
 #endif
