@@ -75,6 +75,9 @@ global_variable RectDimensions BufferDimensions{ 1280, 720 };
 global_variable LPDIRECTSOUNDBUFFER secondaryBuffer;
 global_variable HandmadeAudioInfo audioInf;
 
+//ArraySize function
+#define ArraySize(arrayParameter) (sizeof(arrayParameter) / sizeof((arrayParameter)[0]))
+
 //trick for loading Xinput1_3.dll ourselves.
 //could probably use the 1_4 version, but 1_3 is more reliable to be on older PCs
 
@@ -244,96 +247,107 @@ internal_function void loadControllerLib()
 	}
 }
 
-internal_function void InputTreating(int index, XINPUT_STATE* inputState, int* offsetX, int* offsetY)
+internal_function void SetControllerVibration(GameInput* gameInput)
 {
+	for (int i = 0; i < ArraySize(gameInput->controllers); ++i)
+	{
+		_XINPUT_VIBRATION vib;
+		vib.wLeftMotorSpeed = gameInput->controllers[i].leftMotorSpeed;
+		vib.wRightMotorSpeed = gameInput->controllers[i].rightMotorSpeed;
+
+		XInputSetState(i, &vib);
+	}
+}
+
+internal_function void ControllerBasicInputTreating(ButtonState* oldC, ButtonState* newC,
+	int buttonMask, WORD pressedButtons)
+{
+	newC->pressedAtEnd = (pressedButtons & buttonMask);
+	if (oldC->pressedAtEnd != newC->pressedAtEnd)
+	{
+		newC->transitions = 1;
+	}
+	else
+	{
+		newC->transitions = 0;
+	}
+}
+
+internal_function void NormalizeJoystick(float* finalV, float* minV,
+	float* maxV, SHORT controllerValue)
+{
+	if (controllerValue < 0)
+	{
+		*finalV = *minV = *maxV = (float)controllerValue / 32768.0f;
+	}
+	else
+	{
+		*finalV = *minV = *maxV = (float)controllerValue / 32767.0f;
+	}
+}
+
+internal_function void InputTreating(int index, XINPUT_STATE* inputState, 
+	int* offsetX, int* offsetY, GameInput* newInput, GameInput* oldInput)
+{
+	ControllerInput* currentControllerInput = &newInput->controllers[index];
+	ControllerInput* lastControllerInput = &oldInput->controllers[index];
+	//newInput = newInput->controllers
+	
 	//TODO:
 	//state has a packet number that indicates how many times the state of the controller changed
 	//this may give us info about having to increase this function call frequency rate in the future.
 	
 	//for now we will not care about controller index
-	bool up = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
-	bool down = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
-	bool left = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
-	bool right = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
-	bool start = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_START;
-	bool back = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_BACK;
-	bool leftShoulder = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
-	bool rightShoulder = inputState->Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
+	ControllerBasicInputTreating(&lastControllerInput->up, &currentControllerInput->up,
+		XINPUT_GAMEPAD_DPAD_UP, inputState->Gamepad.wButtons);
+	ControllerBasicInputTreating(&lastControllerInput->down, &currentControllerInput->down,
+		XINPUT_GAMEPAD_DPAD_DOWN, inputState->Gamepad.wButtons);
+	ControllerBasicInputTreating(&lastControllerInput->left, &currentControllerInput->left,
+		XINPUT_GAMEPAD_DPAD_LEFT, inputState->Gamepad.wButtons);
+	ControllerBasicInputTreating(&lastControllerInput->right, &currentControllerInput->right,
+		XINPUT_GAMEPAD_DPAD_RIGHT, inputState->Gamepad.wButtons);
+	ControllerBasicInputTreating(&lastControllerInput->start, &currentControllerInput->start,
+		XINPUT_GAMEPAD_START, inputState->Gamepad.wButtons);
+	ControllerBasicInputTreating(&lastControllerInput->back, &currentControllerInput->back,
+		XINPUT_GAMEPAD_BACK, inputState->Gamepad.wButtons);
+	ControllerBasicInputTreating(&lastControllerInput->leftShoulder, &currentControllerInput->leftShoulder,
+		XINPUT_GAMEPAD_LEFT_SHOULDER, inputState->Gamepad.wButtons);
+	ControllerBasicInputTreating(&lastControllerInput->rightShoulder, &currentControllerInput->rightShoulder,
+		XINPUT_GAMEPAD_RIGHT_SHOULDER, inputState->Gamepad.wButtons);
 
-	int16_t leftThumbX = inputState->Gamepad.sThumbLX;
-	int16_t leftThumbY = inputState->Gamepad.sThumbLY;
+	//joysticks normalizing results, range is -32768 and 32767
+	NormalizeJoystick(&currentControllerInput->leftFinalX, &currentControllerInput->leftMaxX,
+		&currentControllerInput->leftMinX, inputState->Gamepad.sThumbLX);
+	NormalizeJoystick(&currentControllerInput->leftFinalY, &currentControllerInput->leftMaxY,
+		&currentControllerInput->leftMinY, inputState->Gamepad.sThumbLY);
+	NormalizeJoystick(&currentControllerInput->rightFinalX, &currentControllerInput->rightMaxX,
+		&currentControllerInput->rightMinX, inputState->Gamepad.sThumbRX);
+	NormalizeJoystick(&currentControllerInput->rightFinalY, &currentControllerInput->rightMaxY,
+		&currentControllerInput->rightMinY, inputState->Gamepad.sThumbRY);
 
-	int16_t rightThumbX = inputState->Gamepad.sThumbRX;
-	int16_t rightThumbY = inputState->Gamepad.sThumbRY;
-
-	//short 0-255
-	short leftTrigger = inputState->Gamepad.bLeftTrigger;
-	short rightTrigger = inputState->Gamepad.bRightTrigger;
-
-	if (up)
-	{
-		*offsetY+= 2;
-	}
-	if (down)
-	{
-		*offsetY -= 2;
-	}
-	if (left)
-	{
-		*offsetX += 2;
-	}
-	if (right)
-	{
-		*offsetX -= 2;
-	}
-	short threshold = 10000;
-	if (abs(leftThumbY) > threshold)
-	{
-		*offsetY += int(leftThumbY >> 13);
-	}
-	if (abs(leftThumbX) > threshold)
-	{
-		*offsetX -= int(leftThumbX >> 13);
-	}
-
-	if (abs(rightThumbY) > threshold)
-	{
-		*offsetY += int(rightThumbY >> 13);
-	}
-	if (abs(rightThumbX) > threshold)
-	{
-		*offsetX -= int(rightThumbX >> 13);
-	}
-	_XINPUT_VIBRATION vib;
-	vib.wLeftMotorSpeed = 0;
-	vib.wRightMotorSpeed = 0;
-	if (leftTrigger > 250 || 
-		rightTrigger > 250)
-	{
-		vib.wLeftMotorSpeed = 65000;
-		vib.wRightMotorSpeed = 65000;
-		XInputSetState(index, &vib);
-	}
-	else
-	{
-		XInputSetState(index, &vib);
-	}
+	//triggers
+	//short 0-255, we get a normalized value
+	currentControllerInput->leftTriggerFinal = currentControllerInput->leftTriggerMax =
+		currentControllerInput->leftTriggerMin = ((float)inputState->Gamepad.bLeftTrigger) / 255.0f;
+	currentControllerInput->rightTriggerFinal = currentControllerInput->rightTriggerMax =
+		currentControllerInput->rightTriggerMin = ((float)inputState->Gamepad.bRightTrigger) / 255.0f;
 }
 
-internal_function void ControllerInputTreating(int* offsetX, int* offsetY)
+internal_function void ControllerInputTreating(int* offsetX, int* offsetY, 
+	GameInput* newInput, GameInput* oldInput)
 {
 	//Dword = 32bit = int
 	//Word: 16bit
 	//byte : 8bit
 	//short 16bit signed
-	for (int controllerIndex = 0; controllerIndex < XUSER_MAX_COUNT; ++controllerIndex)
+	for (int controllerIndex = 0; controllerIndex < ArraySize(newInput->controllers); ++controllerIndex)
 	{
 		XINPUT_STATE controllerState;
 		int res = XInputGetState(controllerIndex, &controllerState);
 		if (res == ERROR_SUCCESS)
 		{
 			//succeded
-			InputTreating(controllerIndex, &controllerState, offsetX, offsetY);
+			InputTreating(controllerIndex, &controllerState, offsetX, offsetY, newInput, oldInput);
 		}
 		else
 		{
@@ -739,6 +753,13 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			flushSoundBuffer();
 			secondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
+			//input structures initialization
+			GameInput input[2];
+			input[0] = {};
+			input[1] = {};
+			GameInput* newInput = &input[0];
+			GameInput* oldInput = &input[1];
+
 			SoundData gameSoundInfo = {};
 			//no need to free that since its gonna be used for the whole exec and then windows fill free for us
 			gameSoundInfo.bufferPointer = (int16_t*)VirtualAlloc(0, audioInf.bufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
@@ -790,7 +811,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					DispatchMessageA(&Message);//now dispatch it
 				}
 				//controller input checking 
-				ControllerInputTreating(&gradientXoffset, &gradientYoffset);
+				ControllerInputTreating(&gradientXoffset, &gradientYoffset, newInput, oldInput);
 
 				//get sound buffer info
 				HandmadeGetSoundWritingValues();
@@ -798,7 +819,14 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				gameSoundInfo.soundVolume = audioInf.soundVolume;
 
 				//our gameloop
-				GameUpdateAndRender(&renderingBuffer, gradientXoffset, gradientYoffset, &gameSoundInfo, audioInf.period);
+				GameUpdateAndRender(&renderingBuffer, &gameSoundInfo, audioInf.period, newInput);
+
+				//set controller motor speed
+				SetControllerVibration(newInput);
+				//swap input new and old values for next iteration
+				GameInput* temp = oldInput;
+				oldInput = newInput;
+				newInput = temp;
 
 				//audio output function
 				HandmadeWriteInSoundBuffer(&gameSoundInfo);

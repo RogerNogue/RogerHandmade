@@ -32,6 +32,8 @@ struct ButtonState
 
 struct ControllerInput
 {
+	WORD leftMotorSpeed;
+	WORD rightMotorSpeed;
 	//joysticks
 	float leftMaxX;
 	float leftMaxY;
@@ -49,14 +51,14 @@ struct ControllerInput
 	float rightFinalY;
 
 	//short 0-255, triggers
-	short leftTriggerMax;
-	short rightTriggerMax;
-
-	short leftTriggerMin;
-	short rightTriggerMin;
-
-	short leftTriggerFinal;
-	short rightTriggerFinal;
+	float leftTriggerMax;
+	float rightTriggerMax;
+	
+	float leftTriggerMin;
+	float rightTriggerMin;
+	
+	float leftTriggerFinal;
+	float rightTriggerFinal;
 
 	//simple buttons
 	union
@@ -81,6 +83,7 @@ struct GameInput
 	ControllerInput controllers[4];
 };
 
-internal_function void GameUpdateAndRender(RenderBufferData* buffer, int gradXOffset, int gradYOffset, SoundData* soundInfo, int32_t period);
+internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* soundInfo,
+	int32_t period, GameInput* newInput);
 
 #endif

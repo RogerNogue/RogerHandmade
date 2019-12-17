@@ -3,6 +3,49 @@
 
 #include <math.h>//may want to remove this in the future implementing our own stuff
 
+internal_function void controllerReading(int32_t* gradXOffset, int32_t* gradYOffset, GameInput* newInput)
+{
+	if (newInput->controllers[0].up.pressedAtEnd)
+	{
+		*gradYOffset += 10;
+	}
+	if (newInput->controllers[0].down.pressedAtEnd)
+	{
+		*gradYOffset -= 10;
+	}
+	if (newInput->controllers[0].left.pressedAtEnd)
+	{
+		*gradXOffset += 10;
+	}
+	if (newInput->controllers[0].right.pressedAtEnd)
+	{
+		*gradXOffset -= 10;
+	}
+	float threshold = 0.5f;
+	if (newInput->controllers[0].leftFinalY > threshold || 
+		newInput->controllers[0].leftFinalY < -threshold)
+	{
+		*gradYOffset += int32_t(newInput->controllers[0].leftFinalY * 20);
+	}
+	if (newInput->controllers[0].leftFinalX > threshold ||
+		newInput->controllers[0].leftFinalX < -threshold)
+	{
+		*gradXOffset -= int32_t(newInput->controllers[0].leftFinalX * 20);
+	}
+	if (newInput->controllers[0].rightFinalY > threshold ||
+		newInput->controllers[0].rightFinalY < -threshold)
+	{
+		*gradYOffset += int32_t(newInput->controllers[0].rightFinalY * 20);
+	}
+	if (newInput->controllers[0].rightFinalX > threshold ||
+		newInput->controllers[0].rightFinalX < -threshold)
+	{
+		*gradXOffset -= int32_t(newInput->controllers[0].rightFinalX * 20);
+	}
+		newInput->controllers[0].leftMotorSpeed = newInput->controllers[0].leftTriggerFinal*65000;
+		newInput->controllers[0].rightMotorSpeed = newInput->controllers[0].rightTriggerFinal*65000;
+}
+
 internal_function void generateSound(SoundData* soundInfo, int32_t period)
 {
 	local_persistent float sineValue;
@@ -63,8 +106,14 @@ internal_function void renderGradient(const RenderBufferData* Buffer, int gradXO
 	}
 }
 
-internal_function void GameUpdateAndRender(RenderBufferData* buffer, int gradXOffset, int gradYOffset, SoundData* soundInfo, int32_t period)
+internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* soundInfo,
+	int32_t period, GameInput* newInput)
 {
+	local_persistent int32_t gradXOffset;
+	local_persistent int32_t gradYOffset;
+	//local_persistent period;
+	controllerReading(&gradXOffset, &gradYOffset, newInput);
+
 	generateSound(soundInfo, period);
 	renderGradient(buffer, gradXOffset, gradYOffset);
 }
