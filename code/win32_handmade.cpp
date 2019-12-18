@@ -757,9 +757,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			secondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
 			//input structures initialization
-			GameInput input[2];
-			input[0] = {};
-			input[1] = {};
+			GameInput input[2] = {};
 			GameInput* newInput = &input[0];
 			GameInput* oldInput = &input[1];
 
