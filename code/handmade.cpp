@@ -1,6 +1,7 @@
 
 #include "handmade.h"
 
+#include <iostream>//c runtime lib for debugging and printing purposes
 #include <math.h>//may want to remove this in the future implementing our own stuff
 
 internal_function void controllerReading(int32_t* gradXOffset, int32_t* gradYOffset, GameInput* newInput)
@@ -59,10 +60,11 @@ internal_function void generateSound(SoundData* soundInfo, int32_t period)
 		*localBufferPointer++ = sampleValue;//left ear sample
 		*localBufferPointer++ = sampleValue;//right ear sample
 		sineValue += 2.0f * Pi32 / (float)period;
-		if (sineValue > 64000.0)
+
+		if (sineValue > 16000.0f)
 		{
 			//in case sine value gets too big, we lower it maintaining the result.
-			sineValue = asinf(sinResult);
+			sineValue = fmod(sineValue, (2.0f * Pi32));
 		}
 	}
 }

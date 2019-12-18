@@ -14,8 +14,6 @@
 
 #include "handmade.cpp"
 
-#include<iostream>//c runtime lib for debugging and printing purposes
-
 /*
 Future mostly needed implementations
 - Saved game locations
@@ -201,7 +199,7 @@ internal_function void flushSoundBuffer()
 	if (!SUCCEEDED(resLock))
 	{
 		//TODO: log error locking buffer
-		OutputDebugStringA("ERROR LOCK");
+		OutputDebugStringA("ERROR LOCK\n");
 		return;
 	}
 	
@@ -391,6 +389,11 @@ internal_function void HandmadeGetSoundWritingValues()
 }
 internal_function void HandmadeWriteInSoundBuffer(SoundData* soundInfo)
 {
+	//if nothing to write, we leave
+	if (audioInf.bytesToWrite == 0)
+	{
+		return;
+	}
 	VOID* firstLockedPart;
 	VOID* secondLockedPart;
 	DWORD firstLockedSize;
@@ -400,7 +403,7 @@ internal_function void HandmadeWriteInSoundBuffer(SoundData* soundInfo)
 	if (!SUCCEEDED(resLock))
 	{
 		//TODO: log error locking buffer
-		OutputDebugStringA("ERROR LOCK");
+		OutputDebugStringA("ERROR LOCK\n");
 		return;
 	}
 	//fill buffer
