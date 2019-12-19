@@ -778,7 +778,8 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 #endif
 			uint64_t totalMemSize = gameMem.persistentMemorySize + gameMem.transistentMemorySize;
 			gameMem.persistentMemory = (uint8_t*)VirtualAlloc(startMemPosition, totalMemSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-			gameMem.transistentMemory = (uint8_t*)((uint64_t)gameMem.persistentMemory + gameMem.persistentMemorySize);
+			//cast to uint64 for calculations. Note that if the cast was to uint664_t* there would be pointer arithmetic and would allocate more than we want
+			gameMem.transistentMemory = (void*)((uint64_t)gameMem.persistentMemory + gameMem.persistentMemorySize);
 
 			//get our rendering Buffer going:
 			RenderBufferData renderingBuffer;
