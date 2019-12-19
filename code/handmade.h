@@ -7,6 +7,17 @@
 
 #define Pi32 3.14159265359f
 
+#define Kilobytes(Value) ((Value)*1024)
+#define Megabytes(Value) (Kilobytes(Value)*1024)
+#define Gigabytes(Value) (Megabytes(Value)*1024)
+#define Terabytes(Value) (Gigabytes(Value)*1024)
+
+#if SLOW_BUILD
+#define Assert(Expression) if(!(Expression)) *(int*)0 = 0;
+#else
+#define Assert(Expression)
+#endif
+
 struct RenderBufferData
 {
 	void* BufferMemory;
@@ -83,7 +94,30 @@ struct GameInput
 	ControllerInput controllers[4];
 };
 
+struct GameState
+{
+	int32_t xOffset;
+	int32_t yOffset;
+	int32_t toneHz;
+};
+
+struct GameMemory
+{
+	bool isInitialized;
+	uint64_t persistentMemorySize;
+	void* persistentMemory;
+
+	uint64_t transistentMemorySize;
+	void* transistentMemory;
+};
+
+struct Timers
+{
+	float milisecs;
+	float cycles;
+};
+
 internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* soundInfo,
-	int32_t period, GameInput* newInput);
+	int32_t period, GameInput* newInput, GameMemory* gameMem);
 
 #endif

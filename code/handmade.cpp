@@ -109,13 +109,21 @@ internal_function void renderGradient(const RenderBufferData* Buffer, int gradXO
 }
 
 internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* soundInfo,
-	int32_t period, GameInput* newInput)
+	int32_t period, GameInput* newInput, GameMemory* gameMem)
 {
-	local_persistent int32_t gradXOffset;
-	local_persistent int32_t gradYOffset;
+	Assert(sizeof(GameState) <= gameMem->persistentMemorySize);
+
+	GameState* gameState = (GameState*)gameMem->persistentMemory;
+	gameState->toneHz = period;
+
+	if (!gameMem->isInitialized)
+	{
+
+		gameMem->isInitialized = true;
+	}
 	//local_persistent period;
-	controllerReading(&gradXOffset, &gradYOffset, newInput);
+	controllerReading(&gameState->xOffset, &gameState->yOffset, newInput);
 
 	generateSound(soundInfo, period);
-	renderGradient(buffer, gradXOffset, gradYOffset);
+	renderGradient(buffer, gameState->xOffset, gameState->yOffset);
 }

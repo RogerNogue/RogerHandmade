@@ -765,6 +765,21 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			//no need to free that since its gonna be used for the whole exec and then windows fill free for us
 			gameSoundInfo.bufferPointer = (int16_t*)VirtualAlloc(0, audioInf.bufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
+			//allocation of game memory
+			GameMemory gameMem = {};
+			gameMem.persistentMemorySize = Megabytes(64);
+			gameMem.transistentMemorySize = Gigabytes((uint64_t)4);
+
+			LPVOID startMemPosition;
+#if INTERNAL_BUILD
+			startMemPosition = (LPVOID)Terabytes((uint64_t)2);
+#else
+			startMemPosition = (LPVOID)0;
+#endif
+			uint64_t totalMemSize = gameMem.persistentMemorySize + gameMem.transistentMemorySize;
+			gameMem.persistentMemory = (uint8_t*)VirtualAlloc(startMemPosition, totalMemSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+			gameMem.transistentMemory = (uint8_t*)((uint64_t)gameMem.persistentMemory + gameMem.persistentMemorySize);
+
 			//get our rendering Buffer going:
 			RenderBufferData renderingBuffer;
 			renderingBuffer.BufferMemory = BackBuffer.BufferMemory;
@@ -820,7 +835,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				gameSoundInfo.soundVolume = audioInf.soundVolume;
 
 				//our gameloop
-				GameUpdateAndRender(&renderingBuffer, &gameSoundInfo, audioInf.period, newInput);
+				GameUpdateAndRender(&renderingBuffer, &gameSoundInfo, audioInf.period, newInput, &gameMem);
 
 				//set controller motor speed
 				SetControllerVibration(newInput);
