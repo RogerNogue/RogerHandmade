@@ -781,107 +781,115 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			//cast to uint64 for calculations. Note that if the cast was to uint664_t* there would be pointer arithmetic and would allocate more than we want
 			gameMem.transistentMemory = (void*)((uint64_t)gameMem.persistentMemory + gameMem.persistentMemorySize);
 
-			//get our rendering Buffer going:
-			RenderBufferData renderingBuffer;
-			renderingBuffer.BufferMemory = BackBuffer.BufferMemory;
-			renderingBuffer.BufferWidth = BackBuffer.BufferWidth;
-			renderingBuffer.BufferHeight = BackBuffer.BufferHeight;
-			renderingBuffer.Pitch = BackBuffer.Pitch;
-			renderingBuffer.BytesPerPixel = BackBuffer.BytesPerPixel;
-
-			/*Window created, now we have to start a message loop since windows
-			does not do that by default. This loop treats all the messages that 
-			windows sends to our window application*/
-			MSG Message;
-			GLOBAL_GameRunning = true;
-
-			int gradientXoffset = 0;
-			int gradientYoffset = 0;
-			//we dont pass the window handle since we want to treat ALL the messages sent to us, not just to the window
-
-			//timers setup
-			//first we get the frequency
-			LARGE_INTEGER queryFreq = {};
-			QueryPerformanceFrequency(&queryFreq);
-
-			//now get counter for first iteration
-			LARGE_INTEGER prevCounter = {};
-			QueryPerformanceCounter(&prevCounter);
-			LARGE_INTEGER currentCounter = {};
-
-			uint64_t prevCycleCounter = __rdtsc();
-			int64_t currCycleCounter = 0;
-
-			while (GLOBAL_GameRunning)
+			if (gameSoundInfo.bufferPointer && gameMem.persistentMemory && gameMem.transistentMemory)
 			{
-				//BOOL returnValue = GetMessageA(&Message, 0, 0, 0);
 
-				while (PeekMessageA(&Message, WindowHandle, 0, 0, PM_REMOVE))
+				//get our rendering Buffer going:
+				RenderBufferData renderingBuffer;
+				renderingBuffer.BufferMemory = BackBuffer.BufferMemory;
+				renderingBuffer.BufferWidth = BackBuffer.BufferWidth;
+				renderingBuffer.BufferHeight = BackBuffer.BufferHeight;
+				renderingBuffer.Pitch = BackBuffer.Pitch;
+				renderingBuffer.BytesPerPixel = BackBuffer.BytesPerPixel;
+
+				/*Window created, now we have to start a message loop since windows
+				does not do that by default. This loop treats all the messages that
+				windows sends to our window application*/
+				MSG Message;
+				GLOBAL_GameRunning = true;
+
+				int gradientXoffset = 0;
+				int gradientYoffset = 0;
+				//we dont pass the window handle since we want to treat ALL the messages sent to us, not just to the window
+
+				//timers setup
+				//first we get the frequency
+				LARGE_INTEGER queryFreq = {};
+				QueryPerformanceFrequency(&queryFreq);
+
+				//now get counter for first iteration
+				LARGE_INTEGER prevCounter = {};
+				QueryPerformanceCounter(&prevCounter);
+				LARGE_INTEGER currentCounter = {};
+
+				uint64_t prevCycleCounter = __rdtsc();
+				int64_t currCycleCounter = 0;
+
+				while (GLOBAL_GameRunning)
 				{
-					if (Message.message == WM_CLOSE || Message.message == WM_QUIT )
+					//BOOL returnValue = GetMessageA(&Message, 0, 0, 0);
+
+					while (PeekMessageA(&Message, WindowHandle, 0, 0, PM_REMOVE))
 					{
-						GLOBAL_GameRunning = false;
+						if (Message.message == WM_CLOSE || Message.message == WM_QUIT)
+						{
+							GLOBAL_GameRunning = false;
+						}
+
+						//we actually treat the message
+						TranslateMessage(&Message);//messages need a little bit of processing
+						DispatchMessageA(&Message);//now dispatch it
 					}
+					//controller input checking 
+					ControllerInputTreating(&gradientXoffset, &gradientYoffset, newInput, oldInput);
 
-					//we actually treat the message
-					TranslateMessage(&Message);//messages need a little bit of processing
-					DispatchMessageA(&Message);//now dispatch it
+					//get sound buffer info
+					HandmadeGetSoundWritingValues();
+					gameSoundInfo.sizeToWrite = audioInf.bytesToWrite;
+					gameSoundInfo.soundVolume = audioInf.soundVolume;
+
+					//our gameloop
+					GameUpdateAndRender(&renderingBuffer, &gameSoundInfo, audioInf.period, newInput, &gameMem);
+
+					//set controller motor speed
+					SetControllerVibration(newInput);
+					//swap input new and old values for next iteration
+					GameInput* temp = oldInput;
+					oldInput = newInput;
+					newInput = temp;
+
+					//audio output function
+					HandmadeWriteInSoundBuffer(&gameSoundInfo);
+
+					//actually paint the bitmap
+					//first we get device context
+					HDC WindowContext = GetDC(WindowHandle);
+					RectDimensions clientWindowRect = GetContextDimensions(WindowHandle);
+
+					HandmadeUpdateWindow(BackBuffer, WindowContext, 0, 0, clientWindowRect.width, clientWindowRect.height);
+
+					/*++gradientXoffset;
+					++gradientYoffset;*/
+					//release device context
+					ReleaseDC(WindowHandle, WindowContext);
+
+					//timer calculation and output
+
+					//time
+					QueryPerformanceCounter(&currentCounter);
+					int64_t counterDiff = currentCounter.QuadPart - prevCounter.QuadPart;
+					float milsecsPerFrame = (float)counterDiff * 1000.0f / (float)queryFreq.QuadPart;
+					float fps = 1.0f / (milsecsPerFrame / 1000.0f);
+
+					//cycle
+					uint64_t currCycleCounter = __rdtsc();
+					uint64_t cycleDiff = currCycleCounter - prevCycleCounter;
+					float iterMCycles = (float)cycleDiff / (1000.0f * 1000.0f);
+
+					//output
+					char Buffer[256];
+					sprintf(Buffer, "%0.2f miliseconds, %0.2f fps, %0.2f mega cycles\n", milsecsPerFrame, fps, iterMCycles);
+					OutputDebugStringA(Buffer);
+
+					//update prev timer to be the current
+					prevCounter = currentCounter;
+					prevCycleCounter = currCycleCounter;
+
 				}
-				//controller input checking 
-				ControllerInputTreating(&gradientXoffset, &gradientYoffset, newInput, oldInput);
-
-				//get sound buffer info
-				HandmadeGetSoundWritingValues();
-				gameSoundInfo.sizeToWrite = audioInf.bytesToWrite;
-				gameSoundInfo.soundVolume = audioInf.soundVolume;
-
-				//our gameloop
-				GameUpdateAndRender(&renderingBuffer, &gameSoundInfo, audioInf.period, newInput, &gameMem);
-
-				//set controller motor speed
-				SetControllerVibration(newInput);
-				//swap input new and old values for next iteration
-				GameInput* temp = oldInput;
-				oldInput = newInput;
-				newInput = temp;
-
-				//audio output function
-				HandmadeWriteInSoundBuffer(&gameSoundInfo);
-
-				//actually paint the bitmap
-				//first we get device context
-				HDC WindowContext = GetDC(WindowHandle);
-				RectDimensions clientWindowRect = GetContextDimensions(WindowHandle);
-
-				HandmadeUpdateWindow(BackBuffer, WindowContext, 0, 0, clientWindowRect.width, clientWindowRect.height);
-
-				/*++gradientXoffset;
-				++gradientYoffset;*/
-				//release device context
-				ReleaseDC(WindowHandle, WindowContext);
-
-				//timer calculation and output
-				
-				//time
-				QueryPerformanceCounter(&currentCounter);
-				int64_t counterDiff = currentCounter.QuadPart - prevCounter.QuadPart;
-				float milsecsPerFrame = (float)counterDiff * 1000.0f / (float)queryFreq.QuadPart;
-				float fps = 1.0f / (milsecsPerFrame / 1000.0f);
-
-				//cycle
-				uint64_t currCycleCounter = __rdtsc();
-				uint64_t cycleDiff = currCycleCounter - prevCycleCounter;
-				float iterMCycles = (float)cycleDiff/(1000.0f*1000.0f);
-				
-				//output
-				char Buffer[256];
-				sprintf(Buffer, "%0.2f miliseconds, %0.2f fps, %0.2f mega cycles\n", milsecsPerFrame, fps, iterMCycles);
-				OutputDebugStringA(Buffer);
-
-				//update prev timer to be the current
-				prevCounter = currentCounter;
-				prevCycleCounter = currCycleCounter;
-
+			}
+			else
+			{
+			//TODO LOG mem allocation OS error
 			}
 		}
 		else
