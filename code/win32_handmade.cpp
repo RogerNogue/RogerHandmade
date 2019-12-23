@@ -116,6 +116,48 @@ typedef DIRECTSOUND_CREATE(direct_sound_create);
 //CALLBACK means that it calls US
 //WINAPI means that we call windows
 
+internal_function bool PlatformReadEntireFile(char* filename, FileInfo* result)
+{
+	HANDLE fileHandle = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, 0,  OPEN_EXISTING, 0, 0);
+	if (fileHandle == INVALID_HANDLE_VALUE)
+	{
+		//TODO: LOG error loading
+
+		return false;
+	}
+	LARGE_INTEGER fileSize = {};
+	if (!GetFileSizeEx(fileHandle, &fileSize))
+	{
+		//TODO: Log error getting file size
+		return false;
+	}
+	
+	Assert(fileSize.QuadPart == (LONGLONG)fileSize.LowPart);//ensure that the size fits in a int32 variable
+
+	result->memPointer = (uint64_t*)VirtualAlloc(0, fileSize.LowPart, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	if (!ReadFile(fileHandle, result->memPointer, fileSize.LowPart, (LPDWORD)&result->memSize, 0))
+	{
+		//TODO: log error reading file
+		CloseHandle(fileHandle);
+		return false;
+	}
+
+	CloseHandle(fileHandle);
+
+	return true;
+}
+
+internal_function bool PlatformFreeFileMemory(FileInfo* result)
+{
+	result->memSize = 0;
+	if (!VirtualFree(result->memPointer, 0, MEM_RELEASE))
+	{
+		//TODO log error freeing file mem
+		return false;
+	}
+	return true;
+}
+
 internal_function void LoadSound(HWND window, int32_t samplesPerSec, int32_t bufferSize)
 {
 	//Load Lib

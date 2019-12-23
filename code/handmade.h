@@ -18,6 +18,20 @@
 #define Assert(Expression)
 #endif
 
+//File I/O non shippable functions
+#if INTERNAL_BUILD
+struct FileInfo
+{
+	uint32_t memSize;
+	uint64_t* memPointer;
+};
+
+internal_function bool PlatformReadEntireFile(char* filename, FileInfo* result);
+internal_function bool PlatformFreeFileMemory(FileInfo* result);
+internal_function bool PlatformWriteToFile();
+
+#endif
+
 struct RenderBufferData
 {
 	void* BufferMemory;

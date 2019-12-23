@@ -108,6 +108,15 @@ internal_function void renderGradient(const RenderBufferData* Buffer, int gradXO
 	}
 }
 
+internal_function void LoadIO(GameMemory* gameMem, FileInfo* fileRed)
+{
+	if (!PlatformReadEntireFile(__FILE__, fileRed))
+	{
+		return;
+	}
+	PlatformFreeFileMemory(fileRed);
+}
+
 internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* soundInfo,
 	int32_t period, GameInput* newInput, GameMemory* gameMem)
 {
@@ -115,6 +124,9 @@ internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* 
 
 	GameState* gameState = (GameState*)gameMem->persistentMemory;
 	gameState->toneHz = period;
+	FileInfo fileRed;
+
+	LoadIO(gameMem, &fileRed);
 
 	if (!gameMem->isInitialized)
 	{
