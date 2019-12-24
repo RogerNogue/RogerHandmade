@@ -28,7 +28,7 @@ struct FileInfo
 
 internal_function bool PlatformReadEntireFile(char* filename, FileInfo* result);
 internal_function bool PlatformFreeFileMemory(FileInfo* result);
-internal_function bool PlatformWriteToFile();
+internal_function bool PlatformWriteToFile(char* filename, FileInfo* writeInfo);
 
 #endif
 

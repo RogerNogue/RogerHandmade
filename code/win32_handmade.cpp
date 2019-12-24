@@ -158,6 +158,27 @@ internal_function bool PlatformFreeFileMemory(FileInfo* result)
 	return true;
 }
 
+internal_function bool PlatformWriteToFile(char* filename, FileInfo* writeInfo)
+{
+	HANDLE fileHandle = CreateFileA(filename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
+	if (fileHandle == INVALID_HANDLE_VALUE)
+	{
+		//TODO: LOG error loading
+
+		return false;
+	}
+	DWORD bytesWritten = 0;
+	if (!WriteFile(fileHandle, writeInfo->memPointer, writeInfo->memSize, &bytesWritten, 0))
+	{
+		//TODO: log error writing on file
+		return false;
+	}
+
+	CloseHandle(fileHandle);
+
+	return true;
+}
+
 internal_function void LoadSound(HWND window, int32_t samplesPerSec, int32_t bufferSize)
 {
 	//Load Lib

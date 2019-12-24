@@ -114,6 +114,9 @@ internal_function void LoadIO(GameMemory* gameMem, FileInfo* fileRed)
 	{
 		return;
 	}
+	char* newFile = "C:\\Users\\Roger\\Desktop\\Roger\\handmade\\buildStuff\\OutputTest.txt";
+	PlatformWriteToFile(newFile, fileRed);
+
 	PlatformFreeFileMemory(fileRed);
 }
 
@@ -126,11 +129,9 @@ internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* 
 	gameState->toneHz = period;
 	FileInfo fileRed;
 
-	LoadIO(gameMem, &fileRed);
-
 	if (!gameMem->isInitialized)
 	{
-
+		LoadIO(gameMem, &fileRed);//reads from the file and generates another one using file write and read.
 		gameMem->isInitialized = true;
 	}
 	//local_persistent period;
