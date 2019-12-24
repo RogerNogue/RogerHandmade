@@ -114,7 +114,10 @@ internal_function void LoadIO(GameMemory* gameMem, FileInfo* fileRed)
 	{
 		return;
 	}
-	char* newFile = "C:\\Users\\Roger\\Desktop\\Roger\\handmade\\buildStuff\\OutputTest.txt";
+	char* newFile = "OutputTest.txt";//auto writes into the working directory
+
+	//IMPORTANT NOTE: we will want to write into a different file so that we dont overwrite the one we are using
+	//because in case write fails, we dont run into a corrupted file
 	PlatformWriteToFile(newFile, fileRed);
 
 	PlatformFreeFileMemory(fileRed);
