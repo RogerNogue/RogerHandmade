@@ -433,7 +433,7 @@ internal_function void HandmadeGetSoundWritingValues()
 	if (audioInf.firstLoop)
 	{
 		audioInf.soundCounter = audioInf.lockOffset = playCursor;
-		audioInf.bytesToWrite = audioInf.samplesPerSec * 0.50;//we fill 0.50 secs of sound
+		audioInf.bytesToWrite = int32_t(audioInf.samplesPerSec * 0.5f);//we fill 0.50 secs of sound
 		audioInf.firstLoop = false;
 		return;
 	}
@@ -446,7 +446,7 @@ internal_function void HandmadeGetSoundWritingValues()
 	if ((difflockWrite) < (audioInf.samplesPerSec * 0.15))
 	{
 		//case we have to write since play cursor is catching up
-		audioInf.bytesToWrite = audioInf.samplesPerSec * 0.20;//we fill 0.20 secs of sound
+		audioInf.bytesToWrite = (int32_t)((float)audioInf.samplesPerSec * 0.2f);//we fill 0.20 secs of sound
 
 	}
 }
@@ -935,13 +935,13 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					float fps = 1.0f / (milsecsPerFrame / 1000.0f);
 
 					//cycle
-					uint64_t currCycleCounter = __rdtsc();
+					currCycleCounter = (uint64_t)__rdtsc();
 					uint64_t cycleDiff = currCycleCounter - prevCycleCounter;
 					float iterMCycles = (float)cycleDiff / (1000.0f * 1000.0f);
 
 					//output
 					char Buffer[256];
-					sprintf(Buffer, "%0.2f miliseconds, %0.2f fps, %0.2f mega cycles\n", milsecsPerFrame, fps, iterMCycles);
+					sprintf_s(Buffer, "%0.2f miliseconds, %0.2f fps, %0.2f mega cycles\n", milsecsPerFrame, fps, iterMCycles);
 					OutputDebugStringA(Buffer);
 
 					//update prev timer to be the current

@@ -43,8 +43,8 @@ internal_function void controllerReading(int32_t* gradXOffset, int32_t* gradYOff
 	{
 		*gradXOffset -= int32_t(newInput->controllers[0].rightFinalX * 20);
 	}
-		newInput->controllers[0].leftMotorSpeed = newInput->controllers[0].leftTriggerFinal*65000;
-		newInput->controllers[0].rightMotorSpeed = newInput->controllers[0].rightTriggerFinal*65000;
+		newInput->controllers[0].leftMotorSpeed = (WORD)newInput->controllers[0].leftTriggerFinal*65000;
+		newInput->controllers[0].rightMotorSpeed = (WORD)newInput->controllers[0].rightTriggerFinal*65000;
 }
 
 internal_function void generateSound(SoundData* soundInfo, int32_t period)
@@ -96,8 +96,8 @@ internal_function void renderGradient(const RenderBufferData* Buffer, int gradXO
 			*/
 
 			//now we paint the pixel in a more direct manner
-			uint8_t R = (uint8_t)i + gradYOffset;
-			uint8_t G = (uint8_t)j + gradXOffset;
+			uint8_t R = (uint8_t)(i + gradYOffset);
+			uint8_t G = (uint8_t)(j + gradXOffset);
 			uint8_t B = (uint8_t)(gradXOffset + gradYOffset);
 
 			//we store it as said above
