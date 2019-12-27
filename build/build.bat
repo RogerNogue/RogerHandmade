@@ -6,7 +6,7 @@ REM popd removes pushd makings
 pushd C:\Users\Roger\Desktop\Roger\handmade\buildStuff
 REM "-Wall" flag to print all warnings
 REM -O2 for optimization
-cl -DINTERNAL_BUILD=1 -DSLOW_BUILD=1 -DHANDMADE_WIN32=1 -W4 -WX -wd4201 -wd4100 -Zi C:\Users\Roger\Desktop\Roger\handmade\RogerHandmade\code\win32_handmade.cpp user32.lib gdi32.lib
+cl -DINTERNAL_BUILD=1 -DSLOW_BUILD=1 -DHANDMADE_WIN32=1 -W4 -WX -wd4201 -wd4100 -GR- -EHa- -Oi -Zi C:\Users\Roger\Desktop\Roger\handmade\RogerHandmade\code\win32_handmade.cpp user32.lib gdi32.lib
 REM cl /Zi ..\code\win32_handmade.cpp
 REM -FC to show full paths
 REM cl -F4194304 ... requests for a 4MB stack size
