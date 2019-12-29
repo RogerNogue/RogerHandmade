@@ -103,6 +103,29 @@ struct ControllerInput
 	};
 };
 
+struct KeyboardInput
+{
+	ButtonState Q;
+	ButtonState E;
+
+	ButtonState W;
+	ButtonState A;
+	ButtonState S;
+	ButtonState D;
+
+	ButtonState Z;
+	ButtonState X;
+
+	ButtonState Up;
+	ButtonState Down;
+	ButtonState Left;
+	ButtonState Right;
+
+	ButtonState Spacebar;
+	ButtonState Escape;
+
+};
+
 struct GameInput
 {
 	ControllerInput controllers[4];
