@@ -155,6 +155,6 @@ struct Timers
 };
 
 internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* soundInfo,
-	int32_t period, GameInput* newInput, GameMemory* gameMem);
+	int32_t period, GameInput* newInput, KeyboardInput* keyboardIn, GameMemory* gameMem)
 
 #endif

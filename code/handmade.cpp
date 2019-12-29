@@ -124,8 +124,9 @@ internal_function void LoadIO(GameMemory* gameMem, FileInfo* fileRed)
 }
 
 internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* soundInfo,
-	int32_t period, GameInput* newInput, GameMemory* gameMem)
+	int32_t period, GameInput* newInput, KeyboardInput* keyboardIn, GameMemory* gameMem)
 {
+	//TODO: CHECK there is a keyboard plugged in
 	Assert(sizeof(GameState) <= gameMem->persistentMemorySize);
 
 	GameState* gameState = (GameState*)gameMem->persistentMemory;

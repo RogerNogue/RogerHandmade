@@ -924,7 +924,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					gameSoundInfo.soundVolume = audioInf.soundVolume;
 
 					//our gameloop
-					GameUpdateAndRender(&renderingBuffer, &gameSoundInfo, audioInf.period, newInput, &gameMem);
+					GameUpdateAndRender(&renderingBuffer, &gameSoundInfo, audioInf.period, newInput, keyboardInput, &gameMem);
 
 					//set controller motor speed
 					SetControllerVibration(newInput);
