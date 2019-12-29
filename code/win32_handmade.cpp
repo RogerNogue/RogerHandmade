@@ -320,7 +320,7 @@ internal_function void SetControllerVibration(GameInput* gameInput)
 	}
 }
 
-internal_function void ControllerBasicInputTreating(ButtonState* oldC, ButtonState* newC,
+inline internal_function void ControllerBasicInputTreating(ButtonState* oldC, ButtonState* newC,
 	int buttonMask, WORD pressedButtons)
 {
 	newC->pressedAtEnd = (pressedButtons & buttonMask);
@@ -331,6 +331,19 @@ internal_function void ControllerBasicInputTreating(ButtonState* oldC, ButtonSta
 	else
 	{
 		newC->transitions = 0;
+	}
+}
+
+inline internal_function void KeyboardBasicInputTreating(bool wasPressed, bool isReleased, ButtonState* key)
+{
+	key->pressedAtEnd = !isReleased;
+	if (wasPressed != isReleased)
+	{
+		key->transitions = 1;
+	}
+	else
+	{
+		key->transitions = 0;
 	}
 }
 
@@ -604,109 +617,6 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 		}
 		break;
 
-		//keyboard input messages
-		case WM_SYSKEYDOWN:
-		case WM_SYSKEYUP:
-		case WM_KEYDOWN:
-		case WM_KEYUP:
-		{
-			
-			//checking if key is just pressed
-			bool wasPressed = ((Lparam >> 30 & 1) == 0);
-			bool isReleased = ((Lparam >> 31 & 0) == 1);
-			bool32 altPressed = (Lparam >> 29 & 1) == 1;
-
-			//checking keys
-			if (wasPressed && !isReleased)
-			{
-				int32_t previousTone = audioInf.cTonesPerSec;
-				if (Wparam == VK_ESCAPE)
-				{
-					OutputDebugStringA("Escape");
-					GLOBAL_GameRunning = false;
-				}
-				if (Wparam == 'Q')
-				{
-					OutputDebugStringA("Q");
-					audioInf.cTonesPerSec = 261;//C, Do
-					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-				}
-				if (Wparam == 'W')
-				{
-					OutputDebugStringA("W");
-					audioInf.cTonesPerSec = 293;//D, Re
-					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-				}
-				if (Wparam == 'E')
-				{
-					OutputDebugStringA("E");
-					audioInf.cTonesPerSec = 329;//E, Mi
-					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-					
-				}
-				if (Wparam == 'A')
-				{
-					OutputDebugStringA("A");
-					audioInf.cTonesPerSec = 349;//F, Fa
-					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-					
-				}
-				if (Wparam == 'S')
-				{
-					OutputDebugStringA("S");
-					audioInf.cTonesPerSec = 392;//G, Sol
-					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-				}
-				if (Wparam == 'D')
-				{
-					OutputDebugStringA("D");
-					audioInf.cTonesPerSec = 440;//A, La
-					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-				}
-				if (Wparam == 'Z')
-				{
-					OutputDebugStringA("Z");
-					audioInf.cTonesPerSec = 493;//B, Si
-					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-				}
-				if (Wparam == 'X')
-				{
-					OutputDebugStringA("X");
-					audioInf.cTonesPerSec = 523;//C, Do
-					audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
-				}
-				if (Wparam == VK_SPACE)
-				{
-					OutputDebugStringA("SPACEBAR");
-				}
-				if (Wparam == VK_UP)
-				{
-					OutputDebugStringA("ARROW UP");
-				}
-				if (Wparam == VK_LEFT)
-				{
-					OutputDebugStringA("ARROW LEFT");
-				}
-				if (Wparam == VK_RIGHT)
-				{
-					OutputDebugStringA("ARROW RIGHT");
-				}
-				if (Wparam == VK_DOWN)
-				{
-					OutputDebugStringA("ARROW DOWN");
-				}
-				if (altPressed)
-				{
-					if (Wparam == VK_F4)
-					{
-						GLOBAL_GameRunning = false;
-					}
-				}
-				audioInf.startOver = ChangedTone(previousTone, audioInf.cTonesPerSec);
-			}
-		}
-		break;
-
 		case WM_ACTIVATEAPP:
 		{
 			OutputDebugStringA("WM_ACTIVATEAPP\n");
@@ -746,6 +656,104 @@ LRESULT CALLBACK HandmadeMainWindowCallback(	HWND   Window,
 	}
 	return Result;
 
+}
+
+internal_function void TreatKeyboardInput(WPARAM Wparam, 
+	LPARAM Lparam, KeyboardInput* keyboardInput)
+{
+	//checking if key is just pressed
+	bool wasPressed = ((Lparam >> 30 & 1) == 0);
+	bool isReleased = ((Lparam >> 31 & 0) == 1);
+	bool32 altPressed = (Lparam >> 29 & 1) == 1;
+
+	//checking keys
+	if (wasPressed && !isReleased)
+	{
+		int32_t previousTone = audioInf.cTonesPerSec;
+		if (Wparam == VK_ESCAPE)
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->Escape);
+			GLOBAL_GameRunning = false;
+		}
+		if (Wparam == 'Q')
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->Q);
+			audioInf.cTonesPerSec = 261;//C, Do
+			audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+		}
+		if (Wparam == 'W')
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->W);
+			audioInf.cTonesPerSec = 293;//D, Re
+			audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+		}
+		if (Wparam == 'E')
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->E);
+			audioInf.cTonesPerSec = 329;//E, Mi
+			audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+
+		}
+		if (Wparam == 'A')
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->A);
+			audioInf.cTonesPerSec = 349;//F, Fa
+			audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+
+		}
+		if (Wparam == 'S')
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->S);
+			audioInf.cTonesPerSec = 392;//G, Sol
+			audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+		}
+		if (Wparam == 'D')
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->D);
+			audioInf.cTonesPerSec = 440;//A, La
+			audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+		}
+		if (Wparam == 'Z')
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->Z);
+			audioInf.cTonesPerSec = 493;//B, Si
+			audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+		}
+		if (Wparam == 'X')
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->X);
+			audioInf.cTonesPerSec = 523;//C, Do
+			audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+		}
+		if (Wparam == VK_SPACE)
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->Spacebar);
+		}
+		if (Wparam == VK_UP)
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->Up);
+		}
+		if (Wparam == VK_LEFT)
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->Left);
+		}
+		if (Wparam == VK_RIGHT)
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->Right);
+		}
+		if (Wparam == VK_DOWN)
+		{
+			KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->Down);
+		}
+		if (altPressed)
+		{
+			if (Wparam == VK_F4)
+			{
+				GLOBAL_GameRunning = false;
+			}
+		}
+		audioInf.startOver = ChangedTone(previousTone, audioInf.cTonesPerSec);
+	}
 }
 
 int CALLBACK WinMain(	HINSTANCE Instance,
@@ -824,6 +832,8 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			GameInput* newInput = &input[0];
 			GameInput* oldInput = &input[1];
 
+			KeyboardInput keyboardInput = {};
+
 			SoundData gameSoundInfo = {};
 			//no need to free that since its gonna be used for the whole exec and then windows fill free for us
 			gameSoundInfo.bufferPointer = (int16_t*)VirtualAlloc(0, audioInf.bufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
@@ -831,7 +841,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			//allocation of game memory
 			GameMemory gameMem = {};
 			gameMem.persistentMemorySize = Megabytes(64);
-			gameMem.transistentMemorySize = Gigabytes((uint64_t)4);
+			gameMem.transistentMemorySize = Gigabytes((uint64_t)1);
 
 			LPVOID startMemPosition;
 #if INTERNAL_BUILD
@@ -888,10 +898,22 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 						{
 							GLOBAL_GameRunning = false;
 						}
+						if (Message.message == WM_SYSKEYDOWN ||
+							Message.message == WM_SYSKEYUP ||
+							Message.message == WM_KEYDOWN ||
+							Message.message == WM_KEYUP)
+						{
+							TreatKeyboardInput(Message.wParam, Message.lParam, &keyboardInput);
+						}
+						else
+						{
+							//we actually treat the message
+							TranslateMessage(&Message);//messages need a little bit of processing
+							DispatchMessageA(&Message);//now dispatch it
+						}
+						//keyboard input messages
 
-						//we actually treat the message
-						TranslateMessage(&Message);//messages need a little bit of processing
-						DispatchMessageA(&Message);//now dispatch it
+						
 					}
 					//controller input checking 
 					ControllerInputTreating(&gradientXoffset, &gradientYoffset, newInput, oldInput);
