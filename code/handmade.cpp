@@ -47,6 +47,46 @@ internal_function void controllerReading(int32_t* gradXOffset, int32_t* gradYOff
 		newInput->controllers[0].rightMotorSpeed = (WORD)newInput->controllers[0].rightTriggerFinal*65000;
 }
 
+internal_function inline void treatSoundKey(ButtonState* key, int32_t* period, int32_t periodValue)
+{
+	if (key->pressedAtEnd && key->transitions > 0)
+	{
+		*period = periodValue;
+		key->transitions = 0;
+	}
+}
+
+internal_function inline void treatArrowKey(ButtonState* key, int32_t* gradOffset, int32_t gradNewValue)
+{
+	if (key->pressedAtEnd)
+	{
+		//OutputDebugStringA("key pressed\n");
+		*gradOffset = gradNewValue;
+		key->transitions = 0;
+	}
+}
+
+internal_function void keyboardTreating(int32_t* period, KeyboardInput* keyboardIn, 
+	int32_t* gradXOffset, int32_t* gradYOffset, SoundData* soundInfo)
+{
+	//C major scale
+	treatSoundKey(&keyboardIn->Q, period, soundInfo->samplesPerSec / 261);//C, Do
+	treatSoundKey(&keyboardIn->W, period, soundInfo->samplesPerSec / 293);//D, Re
+	treatSoundKey(&keyboardIn->E, period, soundInfo->samplesPerSec / 329);//E, Mi
+	treatSoundKey(&keyboardIn->A, period, soundInfo->samplesPerSec / 349);//F, Fa
+	treatSoundKey(&keyboardIn->S, period, soundInfo->samplesPerSec / 392);//G, Sol
+	treatSoundKey(&keyboardIn->D, period, soundInfo->samplesPerSec / 440);//A, La
+	treatSoundKey(&keyboardIn->Z, period, soundInfo->samplesPerSec / 493);//B, Si
+	treatSoundKey(&keyboardIn->X, period, soundInfo->samplesPerSec / 523);//C, Do
+
+	//screen movement
+	treatArrowKey(&keyboardIn->Up, gradYOffset, *gradYOffset + 10);
+	treatArrowKey(&keyboardIn->Down, gradYOffset, *gradYOffset - 10);
+	treatArrowKey(&keyboardIn->Left, gradXOffset, *gradXOffset - 10);
+	treatArrowKey(&keyboardIn->Right, gradXOffset, *gradXOffset + 10);
+
+}
+
 internal_function void generateSound(SoundData* soundInfo, int32_t period)
 {
 	local_persistent float sineValue;
@@ -124,13 +164,15 @@ internal_function void LoadIO(GameMemory* gameMem, FileInfo* fileRed)
 }
 
 internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* soundInfo,
-	int32_t period, GameInput* newInput, KeyboardInput* keyboardIn, GameMemory* gameMem)
+	GameInput* newInput, KeyboardInput* keyboardIn, GameMemory* gameMem)
 {
 	//TODO: CHECK there is a keyboard plugged in
 	Assert(sizeof(GameState) <= gameMem->persistentMemorySize);
 
 	GameState* gameState = (GameState*)gameMem->persistentMemory;
-	gameState->toneHz = period;
+	
+	local_persistent int32_t period = soundInfo->samplesPerSec / 261;
+	gameState->toneHz = 261;
 	FileInfo fileRed;
 
 	if (!gameMem->isInitialized)
@@ -140,6 +182,8 @@ internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* 
 	}
 	//local_persistent period;
 	controllerReading(&gameState->xOffset, &gameState->yOffset, newInput);
+	keyboardTreating(&period, keyboardIn, &gameState->xOffset, 
+		&gameState->yOffset, soundInfo);
 
 	generateSound(soundInfo, period);
 	renderGradient(buffer, gameState->xOffset, gameState->yOffset);

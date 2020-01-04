@@ -47,6 +47,7 @@ struct SoundData
 	uint32_t sizeToWrite;
 	uint16_t soundVolume;
 	int32_t period;
+	int32_t samplesPerSec;
 };
 
 struct ButtonState
@@ -155,6 +156,6 @@ struct Timers
 };
 
 internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* soundInfo,
-	int32_t period, GameInput* newInput, KeyboardInput* keyboardIn, GameMemory* gameMem)
+	GameInput* newInput, KeyboardInput* keyboardIn, GameMemory* gameMem);
 
 #endif
