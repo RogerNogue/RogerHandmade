@@ -56,6 +56,8 @@ struct ButtonState
 	int32_t transitions;
 };
 
+//TODO map the controller and keyboard buttons into game actions
+//in order to unify them together.
 struct ControllerInput
 {
 	WORD leftMotorSpeed;
@@ -89,41 +91,51 @@ struct ControllerInput
 	//simple buttons
 	union
 	{
+		//TODO: add arrows here
 		ButtonState basicButtons[8];
 		struct
 		{
+			ButtonState leftShoulder;
+			ButtonState rightShoulder;
 			ButtonState up;
-			ButtonState down;
 			ButtonState left;
+			ButtonState down;
 			ButtonState right;
 			ButtonState start;
 			ButtonState back;
-			ButtonState leftShoulder;
-			ButtonState rightShoulder;
+			
 		};
 	};
 };
 
 struct KeyboardInput
 {
-	ButtonState Q;
-	ButtonState E;
+	union
+	{
+		ButtonState keyboardButtons[14];
+		struct
+		{
+			ButtonState Q;
+			ButtonState E;
 
-	ButtonState W;
-	ButtonState A;
-	ButtonState S;
-	ButtonState D;
+			ButtonState W;
+			ButtonState A;
+			ButtonState S;
+			ButtonState D;
 
-	ButtonState Z;
-	ButtonState X;
+			ButtonState Z;
+			ButtonState X;
 
-	ButtonState Up;
-	ButtonState Down;
-	ButtonState Left;
-	ButtonState Right;
+			ButtonState Up;
+			ButtonState Down;
+			ButtonState Left;
+			ButtonState Right;
 
-	ButtonState Spacebar;
-	ButtonState Escape;
+			ButtonState Spacebar;
+			ButtonState Escape;
+		};
+	};
+	
 
 };
 
