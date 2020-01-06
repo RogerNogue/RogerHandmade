@@ -335,6 +335,8 @@ inline internal_function void ControllerBasicInputTreating(ButtonState* oldC, Bu
 
 inline internal_function void KeyboardBasicInputTreating(bool wasPressed, bool isReleased, ButtonState* key)
 {
+	//Assert that checks that we are not doing unnecessary keyboard checks
+	Assert(isReleased == key->pressedAtEnd);
 	key->pressedAtEnd = !isReleased;
 	if ((!wasPressed && !isReleased) || (wasPressed && isReleased))
 	{
@@ -360,7 +362,7 @@ internal_function void NormalizeJoystick(float* finalV, float* minV,
 }
 
 internal_function void InputTreating(int index, XINPUT_STATE* inputState, 
-	int* offsetX, int* offsetY, GameInput* newInput, GameInput* oldInput)
+	GameInput* newInput, GameInput* oldInput)
 {
 	ControllerInput* currentControllerInput = &newInput->controllers[index];
 	ControllerInput* lastControllerInput = &oldInput->controllers[index];
@@ -406,8 +408,7 @@ internal_function void InputTreating(int index, XINPUT_STATE* inputState,
 		currentControllerInput->rightTriggerMin = ((float)inputState->Gamepad.bRightTrigger) / 255.0f;
 }
 
-internal_function void ControllerInputTreating(int* offsetX, int* offsetY, 
-	GameInput* newInput, GameInput* oldInput)
+internal_function void ControllerInputTreating(GameInput* newInput, GameInput* oldInput)
 {
 	//Dword = 32bit = int
 	//Word: 16bit
@@ -420,7 +421,7 @@ internal_function void ControllerInputTreating(int* offsetX, int* offsetY,
 		if (res == ERROR_SUCCESS)
 		{
 			//succeded
-			InputTreating(controllerIndex, &controllerState, offsetX, offsetY, newInput, oldInput);
+			InputTreating(controllerIndex, &controllerState, newInput, oldInput);
 		}
 		else
 		{
@@ -736,6 +737,11 @@ internal_function inline void treatSystemKey(WPARAM Wparam,
 	bool isReleased = ((Lparam >> 31 & 0) == 1);
 	bool32 altPressed = (Lparam >> 29 & 1) == 1;
 
+	if (wasPressed && !isReleased)
+	{
+		return;
+	}
+
 	TreatKeyboardInput(Wparam, Lparam, keyboardInput,
 		wasPressed, isReleased, altPressed);
 }
@@ -746,6 +752,11 @@ internal_function inline void treatNormalKey(WPARAM Wparam,
 	bool wasPressed = ((Lparam >> 30 & 1) == 1);
 	bool isReleased = ((Lparam >> 31 & 1) == 1);
 	bool32 altPressed = (Lparam >> 24 & 1) == 1;
+
+	if (wasPressed && !isReleased)
+	{
+		return;
+	}
 
 	TreatKeyboardInput(Wparam, Lparam, keyboardInput,
 		wasPressed, isReleased, altPressed);
@@ -840,7 +851,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 
 			LPVOID startMemPosition;
 #if INTERNAL_BUILD
-			startMemPosition = (LPVOID)Terabytes((uint64_t)2);
+			startMemPosition = (LPVOID)Terabytes((uint64_t)1);
 #else
 			startMemPosition = (LPVOID)0;
 #endif
@@ -865,10 +876,6 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				windows sends to our window application*/
 				MSG Message;
 				GLOBAL_GameRunning = true;
-
-				int gradientXoffset = 0;
-				int gradientYoffset = 0;
-				//we dont pass the window handle since we want to treat ALL the messages sent to us, not just to the window
 
 				//timers setup
 				//first we get the frequency
@@ -914,7 +921,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 						
 					}
 					//controller input checking 
-					ControllerInputTreating(&gradientXoffset, &gradientYoffset, newInput, oldInput);
+					ControllerInputTreating(newInput, oldInput);
 
 					//get sound buffer info
 					HandmadeGetSoundWritingValues();
