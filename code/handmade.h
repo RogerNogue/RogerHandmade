@@ -12,6 +12,9 @@
 #define Gigabytes(Value) (Megabytes(Value)*1024LL)
 #define Terabytes(Value) (Gigabytes(Value)*1024LL)
 
+//ArraySize function
+#define ArraySize(arrayParameter) (sizeof(arrayParameter) / sizeof((arrayParameter)[0]))
+
 #if SLOW_BUILD
 #define Assert(Expression) if(!(Expression)) *(int*)0 = 0;
 #else
@@ -145,6 +148,11 @@ struct GameInput
 {
 	ControllerInput controllers[4];
 };
+inline ControllerInput* GetController(GameInput* input, uint32_t index) 
+{
+	Assert(index < ArraySize(input->controllers));
+	return &input->controllers[index];
+}
 
 struct GameState
 {

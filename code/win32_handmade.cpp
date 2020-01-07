@@ -72,9 +72,6 @@ global_variable RectDimensions BufferDimensions{ 1280, 720 };
 global_variable LPDIRECTSOUNDBUFFER secondaryBuffer;
 global_variable HandmadeAudioInfo audioInf;
 
-//ArraySize function
-#define ArraySize(arrayParameter) (sizeof(arrayParameter) / sizeof((arrayParameter)[0]))
-
 //trick for loading Xinput1_3.dll ourselves.
 //could probably use the 1_4 version, but 1_3 is more reliable to be on older PCs
 
@@ -312,8 +309,8 @@ internal_function void SetControllerVibration(GameInput* gameInput)
 	for (int i = 0; i < ArraySize(gameInput->controllers); ++i)
 	{
 		_XINPUT_VIBRATION vib;
-		vib.wLeftMotorSpeed = gameInput->controllers[i].leftMotorSpeed;
-		vib.wRightMotorSpeed = gameInput->controllers[i].rightMotorSpeed;
+		vib.wLeftMotorSpeed = GetController(gameInput, i)->leftMotorSpeed;
+		vib.wRightMotorSpeed = GetController(gameInput, i)->rightMotorSpeed;
 
 		XInputSetState(i, &vib);
 	}
@@ -365,9 +362,8 @@ internal_function void NormalizeJoystick(float* finalV, float* minV,
 internal_function void InputTreating(int index, XINPUT_STATE* inputState, 
 	GameInput* newInput, GameInput* oldInput)
 {
-	ControllerInput* currentControllerInput = &newInput->controllers[index];
-	ControllerInput* lastControllerInput = &oldInput->controllers[index];
-	//newInput = newInput->controllers
+	ControllerInput* currentControllerInput = GetController(newInput, index);
+	ControllerInput* lastControllerInput = GetController(oldInput, index);
 	
 	//TODO:
 	//state has a packet number that indicates how many times the state of the controller changed
@@ -433,14 +429,15 @@ internal_function void ControllerInputTreating(GameInput* newInput, GameInput* o
 		{
 			//succeded
 			//newInput->isConnected = oldInput->isConnected = true;
-			newInput->controllers[controllerIndex].isConnected =
-				newInput->controllers[controllerIndex].isConnected = true;
+			GetController(newInput, controllerIndex)->isConnected = true;
+			GetController(oldInput, controllerIndex)->isConnected = true;
+
 			InputTreating(controllerIndex, &controllerState, newInput, oldInput);
 		}
 		else
 		{
-			newInput->controllers[controllerIndex].isConnected =
-				newInput->controllers[controllerIndex].isConnected = false;
+			GetController(newInput, controllerIndex)->isConnected = false;
+			GetController(oldInput, controllerIndex)->isConnected = false;
 			//error or controller not connected
 		}
 	}
