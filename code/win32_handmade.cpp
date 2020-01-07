@@ -432,10 +432,15 @@ internal_function void ControllerInputTreating(GameInput* newInput, GameInput* o
 		if (res == ERROR_SUCCESS)
 		{
 			//succeded
+			//newInput->isConnected = oldInput->isConnected = true;
+			newInput->controllers[controllerIndex].isConnected =
+				newInput->controllers[controllerIndex].isConnected = true;
 			InputTreating(controllerIndex, &controllerState, newInput, oldInput);
 		}
 		else
 		{
+			newInput->controllers[controllerIndex].isConnected =
+				newInput->controllers[controllerIndex].isConnected = false;
 			//error or controller not connected
 		}
 	}

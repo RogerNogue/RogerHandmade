@@ -60,6 +60,8 @@ struct ButtonState
 //in order to unify them together.
 struct ControllerInput
 {
+	bool isConnected;
+
 	WORD leftMotorSpeed;
 	WORD rightMotorSpeed;
 	//joysticks

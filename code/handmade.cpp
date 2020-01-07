@@ -6,6 +6,7 @@
 
 internal_function void controllerReading(int32_t* gradXOffset, int32_t* gradYOffset, GameInput* newInput)
 {
+	//TODO: Iterate over every connected controller
 	if (newInput->controllers[0].up.pressedAtEnd)
 	{
 		*gradYOffset += 10;
@@ -43,8 +44,8 @@ internal_function void controllerReading(int32_t* gradXOffset, int32_t* gradYOff
 	{
 		*gradXOffset -= int32_t(newInput->controllers[0].rightFinalX * 20);
 	}
-		newInput->controllers[0].leftMotorSpeed = (WORD)newInput->controllers[0].leftTriggerFinal*65000;
-		newInput->controllers[0].rightMotorSpeed = (WORD)newInput->controllers[0].rightTriggerFinal*65000;
+		newInput->controllers[0].leftMotorSpeed = (WORD)(newInput->controllers[0].leftTriggerFinal*65000.0f);
+		newInput->controllers[0].rightMotorSpeed = (WORD)(newInput->controllers[0].rightTriggerFinal*65000.0f);
 }
 
 internal_function inline void treatSoundKey(ButtonState* key, int32_t* period, int32_t periodValue)
