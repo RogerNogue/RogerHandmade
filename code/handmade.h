@@ -68,6 +68,8 @@ struct ControllerInput
 	WORD leftMotorSpeed;
 	WORD rightMotorSpeed;
 	//joysticks
+	//TODO: Probably in the future we want joysticks to be regular buttons
+	//And left joystick to be the same as arrows
 	float leftMaxX;
 	float leftMaxY;
 	float rightMaxX;
