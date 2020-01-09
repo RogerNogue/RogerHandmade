@@ -111,6 +111,8 @@ struct ControllerInput
 			ButtonState start;
 			ButtonState back;
 			
+
+			ButtonState LastButton;
 		};
 	};
 };
@@ -140,6 +142,8 @@ struct KeyboardInput
 
 			ButtonState Spacebar;
 			ButtonState Escape;
+
+			ButtonState LastButton;
 		};
 	};
 	

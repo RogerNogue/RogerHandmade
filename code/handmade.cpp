@@ -170,6 +170,10 @@ internal_function void GameUpdateAndRender(RenderBufferData* buffer, SoundData* 
 	//TODO: CHECK there is a keyboard plugged in
 	Assert(sizeof(GameState) <= gameMem->persistentMemorySize);
 
+	//Checking Buttons unions are properly mapped
+	Assert((&(keyboardIn->LastButton) - &(keyboardIn->Q)) == ArraySize(keyboardIn->keyboardButtons));
+	Assert((&(newInput->controllers[0].LastButton) - &(newInput->controllers[0].leftShoulder)) == ArraySize(newInput->controllers[0].basicButtons));
+
 	GameState* gameState = (GameState*)gameMem->persistentMemory;
 	
 	local_persistent int32_t period = soundInfo->samplesPerSec / 261;
