@@ -6,46 +6,42 @@
 
 internal_function void controllerReading(int32_t* gradXOffset, int32_t* gradYOffset, GameInput* newInput)
 {
-	//TODO: Iterate over every connected controller
-	if (newInput->controllers[0].up.pressedAtEnd)
+	for (uint32_t i = 0; i < ArraySize(newInput->controllers); ++i)
 	{
-		*gradYOffset += 10;
+		if (!newInput->controllers[i].isConnected)
+		{
+			continue;
+		}
+		else
+		{
+			ControllerInput* currentController = &newInput->controllers[i];
+			if (currentController->up.pressedAtEnd || currentController->leftJoyUp.pressedAtEnd ||
+				currentController->rightJoyUp.pressedAtEnd)
+			{
+				*gradYOffset += 10;
+			}
+			if (currentController->down.pressedAtEnd || currentController->leftJoyDown.pressedAtEnd ||
+				currentController->rightJoyDown.pressedAtEnd)
+			{
+				*gradYOffset -= 10;
+			}
+			if (currentController->left.pressedAtEnd || currentController->leftJoyLeft.pressedAtEnd ||
+				currentController->rightJoyLeft.pressedAtEnd)
+			{
+				*gradXOffset += 10;
+			}
+			if (currentController->right.pressedAtEnd || currentController->leftJoyRight.pressedAtEnd ||
+				currentController->rightJoyRight.pressedAtEnd)
+			{
+				*gradXOffset -= 10;
+			}
+
+			newInput->controllers[0].leftMotorSpeed = 
+				(WORD)(newInput->controllers[0].leftTrigger.pressedAtEnd * 65000.0f);
+			newInput->controllers[0].rightMotorSpeed = 
+				(WORD)(newInput->controllers[0].rightTrigger.pressedAtEnd * 65000.0f);
+		}
 	}
-	if (newInput->controllers[0].down.pressedAtEnd)
-	{
-		*gradYOffset -= 10;
-	}
-	if (newInput->controllers[0].left.pressedAtEnd)
-	{
-		*gradXOffset += 10;
-	}
-	if (newInput->controllers[0].right.pressedAtEnd)
-	{
-		*gradXOffset -= 10;
-	}
-	float threshold = 0.5f;
-	if (newInput->controllers[0].leftFinalY > threshold || 
-		newInput->controllers[0].leftFinalY < -threshold)
-	{
-		*gradYOffset += int32_t(newInput->controllers[0].leftFinalY * 20);
-	}
-	if (newInput->controllers[0].leftFinalX > threshold ||
-		newInput->controllers[0].leftFinalX < -threshold)
-	{
-		*gradXOffset -= int32_t(newInput->controllers[0].leftFinalX * 20);
-	}
-	if (newInput->controllers[0].rightFinalY > threshold ||
-		newInput->controllers[0].rightFinalY < -threshold)
-	{
-		*gradYOffset += int32_t(newInput->controllers[0].rightFinalY * 20);
-	}
-	if (newInput->controllers[0].rightFinalX > threshold ||
-		newInput->controllers[0].rightFinalX < -threshold)
-	{
-		*gradXOffset -= int32_t(newInput->controllers[0].rightFinalX * 20);
-	}
-		newInput->controllers[0].leftMotorSpeed = (WORD)(newInput->controllers[0].leftTriggerFinal*65000.0f);
-		newInput->controllers[0].rightMotorSpeed = (WORD)(newInput->controllers[0].rightTriggerFinal*65000.0f);
 }
 
 internal_function inline void treatSoundKey(ButtonState* key, int32_t* period, int32_t periodValue)

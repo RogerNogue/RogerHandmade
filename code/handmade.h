@@ -67,47 +67,29 @@ struct ControllerInput
 
 	WORD leftMotorSpeed;
 	WORD rightMotorSpeed;
-	//joysticks
-	//TODO: Probably in the future we want joysticks to be regular buttons
-	//And left joystick to be the same as arrows
-	float leftMaxX;
-	float leftMaxY;
-	float rightMaxX;
-	float rightMaxY;
-
-	float leftMinX;
-	float leftMinY;
-	float rightMinX;
-	float rightMinY;
-
-	float leftFinalX;
-	float leftFinalY;
-	float rightFinalX;
-	float rightFinalY;
-
-	//short 0-255, triggers
-	float leftTriggerMax;
-	float rightTriggerMax;
-	
-	float leftTriggerMin;
-	float rightTriggerMin;
-	
-	float leftTriggerFinal;
-	float rightTriggerFinal;
 
 	//simple buttons
 	union
 	{
-		//TODO: add arrows here
-		ButtonState basicButtons[8];
+		ButtonState basicButtons[18];
 		struct
 		{
 			ButtonState leftShoulder;
 			ButtonState rightShoulder;
+			ButtonState leftTrigger;
+			ButtonState rightTrigger;
 			ButtonState up;
 			ButtonState left;
 			ButtonState down;
 			ButtonState right;
+			ButtonState leftJoyUp;
+			ButtonState leftJoyLeft;
+			ButtonState leftJoyDown;
+			ButtonState leftJoyRight;
+			ButtonState rightJoyUp;
+			ButtonState rightJoyLeft;
+			ButtonState rightJoyDown;
+			ButtonState rightJoyRight;
 			ButtonState start;
 			ButtonState back;
 			

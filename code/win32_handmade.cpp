@@ -345,17 +345,41 @@ inline internal_function void KeyboardBasicInputTreating(bool wasPressed, bool i
 	}
 }
 
-internal_function void NormalizeJoystick(float* finalV, float* minV,
-	float* maxV, SHORT controllerValue, SHORT deadZoneValue)
+internal_function void NormalizeJoystick(ButtonState* buttonPositive, ButtonState* buttonNegative,
+	SHORT controllerValue, SHORT deadZoneValue)
 {
-	*finalV = *minV = *maxV = 0;
 	if (controllerValue > deadZoneValue)
 	{
-		*finalV = *minV = *maxV = (float)controllerValue / 32768.0f;
+		buttonPositive->pressedAtEnd = true;
+		buttonNegative->pressedAtEnd = false;
+		return;
 	}
 	else if (controllerValue < -deadZoneValue)
 	{
-		*finalV = *minV = *maxV = (float)controllerValue / 32767.0f;
+		buttonPositive->pressedAtEnd = false;
+		buttonNegative->pressedAtEnd = true;
+		return;
+	}
+	else
+	{
+		//case dead zone
+		buttonPositive->pressedAtEnd = false;
+		buttonNegative->pressedAtEnd = false;
+	}
+}
+
+inline internal_function void ControllerTriggerInputTreating(
+	ButtonState* oldC, ButtonState* newC, uint32_t deadzone, uint16_t trigValue)
+{
+	newC->pressedAtEnd = (trigValue > XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
+
+	if (oldC->pressedAtEnd != newC->pressedAtEnd)
+	{
+		newC->transitions = 1;
+	}
+	else
+	{
+		newC->transitions = 0;
 	}
 }
 
@@ -388,31 +412,22 @@ internal_function void InputTreating(int index, XINPUT_STATE* inputState,
 		XINPUT_GAMEPAD_RIGHT_SHOULDER, inputState->Gamepad.wButtons);
 
 	//joysticks normalizing results, range is -32768 and 32767
-	NormalizeJoystick(&currentControllerInput->leftFinalX, &currentControllerInput->leftMaxX,
-		&currentControllerInput->leftMinX, inputState->Gamepad.sThumbLX,
-		XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
-	NormalizeJoystick(&currentControllerInput->leftFinalY, &currentControllerInput->leftMaxY,
-		&currentControllerInput->leftMinY, inputState->Gamepad.sThumbLY,
-		XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
-	NormalizeJoystick(&currentControllerInput->rightFinalX, &currentControllerInput->rightMaxX,
-		&currentControllerInput->rightMinX, inputState->Gamepad.sThumbRX,
-		XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
-	NormalizeJoystick(&currentControllerInput->rightFinalY, &currentControllerInput->rightMaxY,
-		&currentControllerInput->rightMinY, inputState->Gamepad.sThumbRY,
-		XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
+	//TODO: Check transitions using old and current controller.
+	NormalizeJoystick(&currentControllerInput->leftJoyRight, &currentControllerInput->leftJoyLeft,
+		inputState->Gamepad.sThumbLX, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+	NormalizeJoystick(&currentControllerInput->leftJoyUp, &currentControllerInput->leftJoyDown,
+		inputState->Gamepad.sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+	NormalizeJoystick(&currentControllerInput->rightJoyRight, &currentControllerInput->rightJoyLeft,
+		inputState->Gamepad.sThumbRX, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
+	NormalizeJoystick(&currentControllerInput->rightJoyUp, &currentControllerInput->rightJoyDown,
+		inputState->Gamepad.sThumbRY, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
 
-	//triggers
-	//short 0-255, we get a normalized value
-	float maxValueThreshold = 255.f - (float)XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
-	currentControllerInput->leftTriggerFinal = currentControllerInput->leftTriggerMax =
-		currentControllerInput->leftTriggerMin = 
-		((float)inputState->Gamepad.bLeftTrigger - XINPUT_GAMEPAD_TRIGGER_THRESHOLD) / maxValueThreshold;
-	currentControllerInput->leftTriggerFinal = max(currentControllerInput->leftTriggerFinal, 0.0f);
+	//triggers, old code detecting the 
 
-	currentControllerInput->rightTriggerFinal = currentControllerInput->rightTriggerMax =
-		currentControllerInput->rightTriggerMin = 
-		((float)inputState->Gamepad.bRightTrigger - XINPUT_GAMEPAD_TRIGGER_THRESHOLD) / maxValueThreshold;
-	currentControllerInput->rightTriggerFinal = max(currentControllerInput->rightTriggerFinal, 0.0f);
+	ControllerTriggerInputTreating(&lastControllerInput->leftTrigger, &currentControllerInput->leftTrigger,
+		XINPUT_GAMEPAD_TRIGGER_THRESHOLD, inputState->Gamepad.bLeftTrigger);
+	ControllerTriggerInputTreating(&lastControllerInput->rightTrigger, &currentControllerInput->rightTrigger,
+		XINPUT_GAMEPAD_TRIGGER_THRESHOLD, inputState->Gamepad.bRightTrigger);
 }
 
 internal_function void ControllerInputTreating(GameInput* newInput, GameInput* oldInput)
