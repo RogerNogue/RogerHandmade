@@ -72,6 +72,9 @@ global_variable RectDimensions BufferDimensions{ 1280, 720 };
 global_variable LPDIRECTSOUNDBUFFER secondaryBuffer;
 global_variable HandmadeAudioInfo audioInf;
 
+global_variable LARGE_INTEGER queryPerformanceFreq;
+global_variable float gameUpdateHz = 60.0f;
+
 //trick for loading Xinput1_3.dll ourselves.
 //could probably use the 1_4 version, but 1_3 is more reliable to be on older PCs
 
@@ -790,6 +793,19 @@ internal_function inline void treatNormalKey(WPARAM Wparam,
 		wasPressed, isReleased, altPressed);
 }
 
+inline LARGE_INTEGER WallclockTime()
+{
+	LARGE_INTEGER result;
+	QueryPerformanceCounter(&result);
+
+	return result;
+}
+
+inline float MsElapsed(LARGE_INTEGER start, LARGE_INTEGER end)
+{
+	return (float)(end.QuadPart - start.QuadPart)*1000.0f / (float)(queryPerformanceFreq.QuadPart);
+}
+
 int CALLBACK WinMain(	HINSTANCE Instance,
 						HINSTANCE PrevInstance,
 						LPSTR     CommandLine,
@@ -845,6 +861,13 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 		//check for creation error
 		if (WindowHandle)
 		{
+			//monitor refresh rates
+			
+			if (!QueryPerformanceFrequency(&queryPerformanceFreq))
+			{
+				queryPerformanceFreq = {};
+			}
+
 			audioInf = {};
 			//initialize sound variables
 			audioInf.samplesPerSec = 48000;
@@ -910,9 +933,12 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 				LARGE_INTEGER queryFreq = {};
 				QueryPerformanceFrequency(&queryFreq);
 
+				//set the refresh time of windows timers to 1 ms
+				timeBeginPeriod(1);
+				float targetMsPerFrame = 1000 / gameUpdateHz;
 				//now get counter for first iteration
 				LARGE_INTEGER prevCounter = {};
-				QueryPerformanceCounter(&prevCounter);
+				prevCounter = WallclockTime();
 				LARGE_INTEGER currentCounter = {};
 
 				uint64_t prevCycleCounter = __rdtsc();
@@ -985,9 +1011,16 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					//timer calculation and output
 
 					//time
-					QueryPerformanceCounter(&currentCounter);
-					int64_t counterDiff = currentCounter.QuadPart - prevCounter.QuadPart;
-					float milsecsPerFrame = (float)counterDiff * 1000.0f / (float)queryFreq.QuadPart;
+					currentCounter = WallclockTime();
+					float currentFrameTime = MsElapsed(prevCounter, currentCounter);
+					while (currentFrameTime < targetMsPerFrame)
+					{
+						Sleep((DWORD)(targetMsPerFrame - currentFrameTime));
+						currentCounter = WallclockTime();
+						currentFrameTime = MsElapsed(prevCounter, currentCounter);
+					}
+					prevCounter = currentCounter;
+					float milsecsPerFrame = (float)currentFrameTime;
 					float fps = 1.0f / (milsecsPerFrame / 1000.0f);
 
 					//cycle
@@ -1001,7 +1034,6 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					OutputDebugStringA(Buffer);
 
 					//update prev timer to be the current
-					prevCounter = currentCounter;
 					prevCycleCounter = currCycleCounter;
 
 				}
