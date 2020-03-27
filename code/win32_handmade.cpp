@@ -993,21 +993,6 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					oldInput = newInput;
 					newInput = temp;
 
-					//audio output function
-					HandmadeWriteInSoundBuffer(&gameSoundInfo);
-
-					//actually paint the bitmap
-					//first we get device context
-					HDC WindowContext = GetDC(WindowHandle);
-					RectDimensions clientWindowRect = GetContextDimensions(WindowHandle);
-
-					HandmadeUpdateWindow(BackBuffer, WindowContext, 0, 0, clientWindowRect.width, clientWindowRect.height);
-
-					/*++gradientXoffset;
-					++gradientYoffset;*/
-					//release device context
-					ReleaseDC(WindowHandle, WindowContext);
-
 					//timer calculation and output
 
 					//time
@@ -1032,6 +1017,21 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					char Buffer[256];
 					sprintf_s(Buffer, "%0.2f miliseconds, %0.2f fps, %0.2f mega cycles\n", milsecsPerFrame, fps, iterMCycles);
 					OutputDebugStringA(Buffer);
+
+					//Now that frame over, we set audio and paint the screen
+
+					//audio output function
+					HandmadeWriteInSoundBuffer(&gameSoundInfo);
+
+					//actually paint the bitmap
+					//first we get device context
+					HDC WindowContext = GetDC(WindowHandle);
+					RectDimensions clientWindowRect = GetContextDimensions(WindowHandle);
+
+					HandmadeUpdateWindow(BackBuffer, WindowContext, 0, 0, clientWindowRect.width, clientWindowRect.height);
+
+					//release device context
+					ReleaseDC(WindowHandle, WindowContext);
 
 					//update prev timer to be the current
 					prevCycleCounter = currCycleCounter;
