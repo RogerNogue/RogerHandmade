@@ -1000,7 +1000,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					float currentFrameTime = MsElapsed(prevCounter, currentCounter);
 					while (currentFrameTime < targetMsPerFrame)
 					{
-						Sleep((DWORD)(targetMsPerFrame - currentFrameTime));
+						Sleep((DWORD)(targetMsPerFrame - currentFrameTime)); //we turn it into int truncating taking the lower part
 						currentCounter = WallclockTime();
 						currentFrameTime = MsElapsed(prevCounter, currentCounter);
 					}
