@@ -54,7 +54,6 @@ struct HandmadeAudioInfo
 {
 	int32_t samplesPerSec;
 	int32_t bufferSize;
-	int32_t cTonesPerSec;//hz of C frequency
 	int32_t period;
 	int32_t bytesPerSample;
 	uint32_t soundCounter;
@@ -593,7 +592,7 @@ internal_function void HandmadeResizeDIBSection(BufferData* Buffer, int width, i
 	Buffer->Pitch = Buffer->BufferWidth * Buffer->BytesPerPixel;
 
 }
-//for now we are not gonna make int inline since StretchDIBits() may do more than we expect
+
 internal_function void HandmadeUpdateWindow(const BufferData& Buffer, HDC DeviceContext, int X, int Y, int Width, int Height)
 {
 	/*
@@ -871,9 +870,9 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			audioInf = {};
 			//initialize sound variables
 			audioInf.samplesPerSec = 48000;
-			audioInf.bufferSize = 48000 * 2 * sizeof(int16_t); //2 seconds of sound
-			audioInf.cTonesPerSec = 261;//hz of C frequency
-			audioInf.period = audioInf.samplesPerSec / audioInf.cTonesPerSec;
+			audioInf.bufferSize = 48000 * sizeof(int16_t); //1 second of sound
+			int32_t cTonesPerSec = 261;
+			audioInf.period = audioInf.samplesPerSec / cTonesPerSec;
 			audioInf.bytesPerSample = 2 * sizeof(int16_t);
 			audioInf.soundVolume = 2000;
 			audioInf.firstLoop = true;
