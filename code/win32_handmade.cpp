@@ -63,6 +63,12 @@ struct HandmadeAudioInfo
 	int32_t bytesToWrite;
 };
 
+struct AudioPointersInfo
+{
+	DWORD playCursor = 0;
+	DWORD writeCursor = 0;
+};
+
 //static auto declares to 0
 global_variable bool GLOBAL_GameRunning;
 
@@ -609,6 +615,40 @@ internal_function void HandmadeUpdateWindow(const BufferData& Buffer, HDC Device
 		DIB_RGB_COLORS, SRCCOPY);
 }
 
+internal_function void RenderDebugLine(AudioPointersInfo& audioPointers, uint16_t margins)
+{
+	//var that maps audio width-screen width
+	float xScale = (float)(BackBuffer.BufferWidth - margins*2) / audioInf.bufferSize;
+	uint32_t color1 = 0xFFFFFFFF;
+	uint32_t color2 = 0x00000000;
+	//for all the height of the screen, we modify the backbuffer
+	uint8_t* drawPointer;
+	for (int j = margins; j < BackBuffer.BufferHeight- margins; ++j)
+	{
+		//play cursor
+		drawPointer = (uint8_t*)BackBuffer.BufferMemory +
+						(int)(xScale * (float)audioPointers.playCursor) * BackBuffer.BytesPerPixel + 
+						j * BackBuffer.Pitch;
+		*(uint32_t*)drawPointer = color1;
+
+		//draw cursor
+		drawPointer = (uint8_t*)BackBuffer.BufferMemory +
+						(int)(xScale * (float)audioPointers.writeCursor) * BackBuffer.BytesPerPixel +
+						j * BackBuffer.Pitch;
+		*(uint32_t*)drawPointer = color2;
+	}
+}
+
+internal_function void HandmadeDrawAudioDebug(AudioPointersInfo* audioPointers)
+{
+	uint16_t margins = 16;
+
+	for (int i = 0; i < (int)gameUpdateHz; ++i)
+	{
+		RenderDebugLine(*(audioPointers + i), margins);
+	}
+}
+
 bool ChangedTone(int32_t A, int32_t B)
 {
 	return (A != B);
@@ -877,6 +917,9 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			audioInf.soundVolume = 2000;
 			audioInf.firstLoop = true;
 
+			AudioPointersInfo audioDebugVars[30] = {};//30 last frames
+			uint32_t audioDebugIndex = 0; //index to iterate over those
+
 			//DirectSound loading
 			LoadSound(WindowHandle, audioInf.samplesPerSec, audioInf.bufferSize);
 			flushSoundBuffer();
@@ -1027,7 +1070,20 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					HDC WindowContext = GetDC(WindowHandle);
 					RectDimensions clientWindowRect = GetContextDimensions(WindowHandle);
 
+#if INTERNAL_BUILD
+					AudioPointersInfo newCursors;
+					secondaryBuffer->GetCurrentPosition(&newCursors.playCursor, &newCursors.writeCursor);
+					audioDebugVars[audioDebugIndex++] = newCursors;
+
+					if (audioDebugIndex > gameUpdateHz)
+					{
+						audioDebugIndex = 0;
+					}
+
+					HandmadeDrawAudioDebug(audioDebugVars);
+#endif
 					HandmadeUpdateWindow(BackBuffer, WindowContext, 0, 0, clientWindowRect.width, clientWindowRect.height);
+
 
 					//release device context
 					ReleaseDC(WindowHandle, WindowContext);
