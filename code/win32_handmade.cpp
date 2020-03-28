@@ -80,6 +80,9 @@ global_variable HandmadeAudioInfo audioInf;
 global_variable LARGE_INTEGER queryPerformanceFreq;
 global_variable float gameUpdateHz = 60.0f;
 
+#if INTERNAL_BUILD
+global_variable const uint32_t Audio_debug_count = 15;
+#endif
 //trick for loading Xinput1_3.dll ourselves.
 //could probably use the 1_4 version, but 1_3 is more reliable to be on older PCs
 
@@ -620,7 +623,7 @@ internal_function void RenderDebugLine(AudioPointersInfo& audioPointers, uint16_
 	//var that maps audio width-screen width
 	float xScale = (float)(BackBuffer.BufferWidth - margins*2) / audioInf.bufferSize;
 	uint32_t color1 = 0xFFFFFFFF;
-	uint32_t color2 = 0x00000000;
+	uint32_t color2 = 0xFFFF0000;
 	//for all the height of the screen, we modify the backbuffer
 	uint8_t* drawPointer;
 	for (int j = margins; j < BackBuffer.BufferHeight- margins; ++j)
@@ -643,7 +646,7 @@ internal_function void HandmadeDrawAudioDebug(AudioPointersInfo* audioPointers)
 {
 	uint16_t margins = 16;
 
-	for (int i = 0; i < (int)gameUpdateHz; ++i)
+	for (int i = 0; i < Audio_debug_count; ++i)
 	{
 		RenderDebugLine(*(audioPointers + i), margins);
 	}
@@ -917,7 +920,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			audioInf.soundVolume = 2000;
 			audioInf.firstLoop = true;
 
-			AudioPointersInfo audioDebugVars[30] = {};//30 last frames
+			AudioPointersInfo audioDebugVars[Audio_debug_count] = {};//30 last frames
 			uint32_t audioDebugIndex = 0; //index to iterate over those
 
 			//DirectSound loading
@@ -1075,7 +1078,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					secondaryBuffer->GetCurrentPosition(&newCursors.playCursor, &newCursors.writeCursor);
 					audioDebugVars[audioDebugIndex++] = newCursors;
 
-					if (audioDebugIndex > gameUpdateHz)
+					if (audioDebugIndex > Audio_debug_count)
 					{
 						audioDebugIndex = 0;
 					}
