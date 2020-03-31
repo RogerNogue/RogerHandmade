@@ -12,6 +12,9 @@
 #define Gigabytes(Value) (Megabytes(Value)*1024LL)
 #define Terabytes(Value) (Gigabytes(Value)*1024LL)
 
+#define MIN_AUDIO_SAMPLES_THRESHOLD 0.15f	//distance write cursor and our written data, the less the better
+#define AUDIO_FILL_AMOUNT 0.2f				//size that we'll write everytime, has to be a pair amount
+
 //ArraySize function
 #define ArraySize(arrayParameter) (sizeof(arrayParameter) / sizeof((arrayParameter)[0]))
 

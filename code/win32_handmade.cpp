@@ -495,10 +495,10 @@ internal_function void HandmadeGetSoundWritingValues()
 		//case we went back to the beggining of the buffer
 		difflockWrite = audioInf.bufferSize - writeCursor + audioInf.lockOffset;
 	}
-	if ((difflockWrite) < (audioInf.samplesPerSec * 0.15))
+	if ((difflockWrite) < (audioInf.samplesPerSec * MIN_AUDIO_SAMPLES_THRESHOLD))
 	{
 		//case we have to write since play cursor is catching up
-		audioInf.bytesToWrite = (int32_t)((float)audioInf.samplesPerSec * 0.2f);//we fill 0.20 secs of sound
+		audioInf.bytesToWrite = (int32_t)((float)audioInf.samplesPerSec * AUDIO_FILL_AMOUNT);//we fill 0.20 secs of sound
 
 	}
 }
