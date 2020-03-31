@@ -86,22 +86,22 @@ internal_function void keyboardTreating(int32_t* period, KeyboardInput* keyboard
 
 internal_function void generateSound(SoundData* soundInfo, int32_t period)
 {
-	local_persistent float sineValue;
+	local_persistent double sineValue;
 	int16_t* localBufferPointer = soundInfo->bufferPointer;
 	uint32_t pairsOfSamplesToWrite = soundInfo->sizeToWrite / 4;
 	for (uint32_t iterator = 0; iterator < pairsOfSamplesToWrite; ++iterator)
 	{
-		float sinResult = sinf(sineValue);
+		float sinResult = sinf((float)sineValue);
 		int16_t sampleValue = (int16_t)(sinResult * soundInfo->soundVolume);
 
 		*localBufferPointer++ = sampleValue;//left ear sample
 		*localBufferPointer++ = sampleValue;//right ear sample
-		sineValue += 2.0f * Pi32 / (float)period;
+		sineValue += 2.0 * (double)Pi32 / (double)period;
 
-		if (sineValue > 16000.0f)
+		if (sineValue > 1024000.0f)
 		{
 			//in case sine value gets too big, we lower it maintaining the result.
-			sineValue = fmod(sineValue, (2.0f * Pi32));
+			sineValue = fmod(sineValue, (2.0 * (double)Pi32));
 		}
 	}
 }
