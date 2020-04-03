@@ -1078,7 +1078,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 					secondaryBuffer->GetCurrentPosition(&newCursors.playCursor, &newCursors.writeCursor);
 					audioDebugVars[audioDebugIndex++] = newCursors;
 
-					if (audioDebugIndex > Audio_debug_count)
+					if (audioDebugIndex >= Audio_debug_count)
 					{
 						audioDebugIndex = 0;
 					}
