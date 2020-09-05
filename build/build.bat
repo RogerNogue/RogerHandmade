@@ -1,12 +1,12 @@
 @REM this line turns off prints. The @ makes this own line not being printed too
 @echo off
 
-IF NOT EXIST C:\Users\Roger\Desktop\Roger\handmade\buildStuff mkdir C:\Users\Roger\Desktop\Roger\handmade\buildStuff
+IF NOT EXIST C:\Users\rnugu\Desktop\Roger\handmade\buildStuff mkdir C:\Users\rnugu\Desktop\Roger\handmade\buildStuff
 REM popd removes pushd makings
-pushd C:\Users\Roger\Desktop\Roger\handmade\buildStuff
+pushd C:\Users\rnugu\Desktop\Roger\handmade\buildStuff
 REM "-Wall" flag to print all warnings
 REM -O2 for optimization
-cl -DINTERNAL_BUILD=1 -DSLOW_BUILD=1 -DHANDMADE_WIN32=1 -MT -W4 -WX -wd4201 -wd4100 -GR- -EHa- -Oi -Fmwin32_handmade.map  -Zi C:\Users\Roger\Desktop\Roger\handmade\RogerHandmade\code\win32_handmade.cpp user32.lib gdi32.lib Winmm.lib
+cl -DINTERNAL_BUILD=1 -DSLOW_BUILD=1 -DHANDMADE_WIN32=1 -MT -W4 -WX -wd4201 -wd4100 -GR- -EHa- -Oi -Fmwin32_handmade.map  -Zi C:\Users\rnugu\Desktop\Roger\handmade\RogerHandmade\code\win32_handmade.cpp user32.lib gdi32.lib Winmm.lib
 REM cl /Zi ..\code\win32_handmade.cpp
 REM -FC to show full paths
 REM cl -F4194304 ... requests for a 4MB stack size

@@ -4,6 +4,6 @@
 mkdir ..\buildStuff
 REM popd removes pushd makings
 pushd ..\buildStuff
-cl /Zi C:\Users\Roger\Desktop\Roger\handmade\code\win32_handmade.cpp user32.lib
+cl /Zi C:\Users\rnugu\Desktop\Roger\handmade\RogerHandmade\code\win32_handmade.cpp user32.lib
 REM cl /Zi ..\code\win32_handmade.cpp
 popd
