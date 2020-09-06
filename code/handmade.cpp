@@ -96,13 +96,15 @@ internal_function void generateSound(SoundData* soundInfo, int32_t period)
 
 		*localBufferPointer++ = sampleValue;//left ear sample
 		*localBufferPointer++ = sampleValue;//right ear sample
+
+		if (sineValue > 2.0 * (double)Pi32)
+		{
+			//in case sine value gets too big, we lower it.
+			sineValue = asinf(sinResult);
+		}
+
 		sineValue += 2.0 * (double)Pi32 / (double)period;
 
-		if (sineValue > 1024000.0f)
-		{
-			//in case sine value gets too big, we lower it maintaining the result.
-			sineValue = fmod(sineValue, (2.0 * (double)Pi32));
-		}
 	}
 }
 
