@@ -12,6 +12,7 @@
 #include <xinput.h>
 #include <dsound.h>
 
+#include "handmade.h"
 #include "handmade.cpp"
 
 /*
@@ -61,6 +62,8 @@ struct HandmadeAudioInfo
 	bool firstLoop;
 	int32_t lockOffset;
 	int32_t bytesToWrite;
+	uint32_t bytesInAFrame;
+	uint32_t safetyMarginBytes;
 };
 
 struct AudioPointersInfo
@@ -479,29 +482,54 @@ internal_function void HandmadeGetSoundWritingValues()
 		//TODO: log error getting position
 		return;
 	}
-	//lockOffset is the size from the start to the point where lock begins
-	audioInf.lockOffset = (audioInf.soundCounter * audioInf.bytesPerSample) % audioInf.bufferSize;
-	audioInf.bytesToWrite = 0;
 	if (audioInf.firstLoop)
 	{
-		audioInf.soundCounter = audioInf.lockOffset = playCursor;
-		audioInf.bytesToWrite = int32_t(audioInf.samplesPerSec * 0.5f);//we fill 0.50 secs of sound
+		audioInf.soundCounter = writeCursor / audioInf.bytesPerSample;
 		audioInf.firstLoop = false;
-		return;
 	}
-	DWORD difflockWrite = (DWORD)audioInf.lockOffset - writeCursor;
-	if (difflockWrite < 0)
-	{
-		//case we went back to the beggining of the buffer
-		difflockWrite = audioInf.bufferSize - writeCursor + audioInf.lockOffset;
-	}
-	if ((difflockWrite) < (audioInf.samplesPerSec * MIN_AUDIO_SAMPLES_THRESHOLD))
-	{
-		//case we have to write since play cursor is catching up
-		audioInf.bytesToWrite = (int32_t)((float)audioInf.samplesPerSec * AUDIO_FILL_AMOUNT);//we fill 0.20 secs of sound
+	//new buffer treatment:
+	uint32_t SoundCounterMappedInBuffer = audioInf.soundCounter * audioInf.bytesPerSample % audioInf.bufferSize;
 
+	//set up conditions for possible cases
+	bool IsSoundCounterBetweenPlayAndWrite = playCursor < SoundCounterMappedInBuffer && SoundCounterMappedInBuffer < writeCursor;
+
+	bool IsSoundCounterBetweenPlayAndWriteButPlayInTheEnd = 
+		playCursor > writeCursor && writeCursor > SoundCounterMappedInBuffer;
+
+	bool IsSoundCounterBetweenPlayAndWriteButPlayAndCounterInTheEnd = playCursor > writeCursor && playCursor < SoundCounterMappedInBuffer;
+
+
+	//this basically means high latency
+	bool IsHighLatency = IsSoundCounterBetweenPlayAndWrite || IsSoundCounterBetweenPlayAndWriteButPlayInTheEnd ||
+		IsSoundCounterBetweenPlayAndWriteButPlayAndCounterInTheEnd;
+
+	if(!IsHighLatency)
+	{
+		//if low latency, we draw from the sound counter mapped
+		//lockOffset is the size from the start to the point where lock begins
+		audioInf.lockOffset = SoundCounterMappedInBuffer;
+
+		//if the sound counter is back to the beggining of the buffer but the write still at the end, we equalize the sound counter
+		if (SoundCounterMappedInBuffer < writeCursor)
+		{
+			SoundCounterMappedInBuffer += audioInf.bufferSize;
+		}
+		//the bytes to write are: bytes in a frame + safety margin - (differente between write cursor and sound counter)
+		audioInf.bytesToWrite = audioInf.bytesInAFrame + audioInf.safetyMarginBytes -
+			(SoundCounterMappedInBuffer - writeCursor);
+	}
+	//if we got a really high latency spike, we could have messed up bytesToWrite, so we fix it here.
+	if(IsHighLatency || audioInf.bytesToWrite < 0)
+	{
+		//we draw from write cursor if wether high or extremely high latency
+		//lockOffset is the size from the start to the point where lock begins
+		audioInf.lockOffset = writeCursor;
+
+		//the bytes to write are: bytes in a frame + safety margin
+		audioInf.bytesToWrite = audioInf.bytesInAFrame + audioInf.safetyMarginBytes;
 	}
 }
+
 internal_function void HandmadeWriteInSoundBuffer(SoundData* soundInfo)
 {
 	//if nothing to write, we leave
@@ -919,6 +947,8 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			audioInf.bytesPerSample = 2 * sizeof(int16_t);
 			audioInf.soundVolume = 2000;
 			audioInf.firstLoop = true;
+			audioInf.bytesInAFrame = audioInf.bytesPerSample * audioInf.samplesPerSec / (uint16_t)gameUpdateHz;
+			audioInf.safetyMarginBytes = audioInf.bytesInAFrame * 2; //2 frames of margin
 
 			AudioPointersInfo audioDebugVars[Audio_debug_count] = {};//30 last frames
 			uint32_t audioDebugIndex = 0; //index to iterate over those
