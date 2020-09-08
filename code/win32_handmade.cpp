@@ -70,6 +70,8 @@ struct AudioPointersInfo
 {
 	DWORD playCursor = 0;
 	DWORD writeCursor = 0;
+	DWORD currentPointer = 0;
+	DWORD nextFrameBoundary = 0;
 };
 
 //static auto declares to 0
@@ -82,6 +84,8 @@ global_variable HandmadeAudioInfo audioInf;
 
 global_variable LARGE_INTEGER queryPerformanceFreq;
 global_variable float gameUpdateHz = 60.0f;
+
+global_variable bool IsGamePaused = false;
 
 #if INTERNAL_BUILD
 global_variable const uint32_t Audio_debug_count = 15;
@@ -650,8 +654,9 @@ internal_function void RenderDebugLine(AudioPointersInfo& audioPointers, uint16_
 {
 	//var that maps audio width-screen width
 	float xScale = (float)(BackBuffer.BufferWidth - margins*2) / audioInf.bufferSize;
-	uint32_t color1 = 0xFFFFFFFF;
-	uint32_t color2 = 0xFFFF0000;
+	uint32_t colorPlay = 0xFFFFFFFF;
+	uint32_t colorWrite = 0xFFFF0000;
+	uint32_t colorCurrent = 0xFF00FFFF;
 	//for all the height of the screen, we modify the backbuffer
 	uint8_t* drawPointer;
 	for (int j = margins; j < BackBuffer.BufferHeight- margins; ++j)
@@ -660,13 +665,19 @@ internal_function void RenderDebugLine(AudioPointersInfo& audioPointers, uint16_
 		drawPointer = (uint8_t*)BackBuffer.BufferMemory +
 						(int)(xScale * (float)audioPointers.playCursor) * BackBuffer.BytesPerPixel + 
 						j * BackBuffer.Pitch;
-		*(uint32_t*)drawPointer = color1;
+		*(uint32_t*)drawPointer = colorPlay;
 
-		//draw cursor
+		//write cursor
 		drawPointer = (uint8_t*)BackBuffer.BufferMemory +
 						(int)(xScale * (float)audioPointers.writeCursor) * BackBuffer.BytesPerPixel +
 						j * BackBuffer.Pitch;
-		*(uint32_t*)drawPointer = color2;
+		*(uint32_t*)drawPointer = colorWrite;
+
+		//current cursor
+		drawPointer = (uint8_t*)BackBuffer.BufferMemory +
+						(int)(xScale * (float)audioPointers.currentPointer) * BackBuffer.BytesPerPixel +
+						j * BackBuffer.Pitch;
+		*(uint32_t*)drawPointer = colorCurrent;
 	}
 }
 
@@ -676,7 +687,7 @@ internal_function void HandmadeDrawAudioDebug(AudioPointersInfo* audioPointers)
 
 	for (int i = 0; i < Audio_debug_count; ++i)
 	{
-		RenderDebugLine(*(audioPointers + i), margins);
+		RenderDebugLine(*audioPointers, margins);
 	}
 }
 
@@ -800,6 +811,10 @@ internal_function void TreatKeyboardInput(WPARAM Wparam,
 	if (Wparam == 'X')
 	{
 		KeyboardBasicInputTreating(wasPressed, isReleased, &keyboardInput->X);
+	}
+	if (Wparam == 'P' && !wasPressed && !isReleased)
+	{
+		IsGamePaused = !IsGamePaused;
 	}
 	if (Wparam == VK_SPACE)
 	{
@@ -950,8 +965,7 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 			audioInf.bytesInAFrame = audioInf.bytesPerSample * audioInf.samplesPerSec / (uint16_t)gameUpdateHz;
 			audioInf.safetyMarginBytes = audioInf.bytesInAFrame * 2; //2 frames of margin
 
-			AudioPointersInfo audioDebugVars[Audio_debug_count] = {};//30 last frames
-			uint32_t audioDebugIndex = 0; //index to iterate over those
+			AudioPointersInfo audioDebugVars = {};//current frame audio info
 
 			//DirectSound loading
 			LoadSound(WindowHandle, audioInf.samplesPerSec, audioInf.bufferSize);
@@ -1049,81 +1063,80 @@ int CALLBACK WinMain(	HINSTANCE Instance,
 
 						
 					}
-					//controller input checking 
-					ControllerInputTreating(newInput, oldInput);
-
-					//get sound buffer info
-					HandmadeGetSoundWritingValues();
-					gameSoundInfo.sizeToWrite = audioInf.bytesToWrite;
-					gameSoundInfo.soundVolume = audioInf.soundVolume;
-
-					//our gameloop
-					GameUpdateAndRender(&renderingBuffer, &gameSoundInfo, 
-						newInput, &keyboardInput, &gameMem);
-
-					//set controller motor speed
-					SetControllerVibration(newInput);
-					//swap input new and old values for next iteration
-					GameInput* temp = oldInput;
-					oldInput = newInput;
-					newInput = temp;
-
-					//timer calculation and output
-
-					//time
-					currentCounter = WallclockTime();
-					float currentFrameTime = MsElapsed(prevCounter, currentCounter);
-					while (currentFrameTime < targetMsPerFrame)
+					if (!IsGamePaused)
 					{
-						Sleep((DWORD)(targetMsPerFrame - currentFrameTime)); //we turn it into int truncating taking the lower part
+						//controller input checking 
+						ControllerInputTreating(newInput, oldInput);
+
+						//get sound buffer info
+						HandmadeGetSoundWritingValues();
+						gameSoundInfo.sizeToWrite = audioInf.bytesToWrite;
+						gameSoundInfo.soundVolume = audioInf.soundVolume;
+
+						//our gameloop
+						GameUpdateAndRender(&renderingBuffer, &gameSoundInfo,
+							newInput, &keyboardInput, &gameMem);
+
+						//set controller motor speed
+						SetControllerVibration(newInput);
+						//swap input new and old values for next iteration
+						GameInput* temp = oldInput;
+						oldInput = newInput;
+						newInput = temp;
+
+						//timer calculation and output
+
+						//time
 						currentCounter = WallclockTime();
-						currentFrameTime = MsElapsed(prevCounter, currentCounter);
+						float currentFrameTime = MsElapsed(prevCounter, currentCounter);
+						while (currentFrameTime < targetMsPerFrame)
+						{
+							Sleep((DWORD)(targetMsPerFrame - currentFrameTime)); //we turn it into int truncating taking the lower part
+							currentCounter = WallclockTime();
+							currentFrameTime = MsElapsed(prevCounter, currentCounter);
+						}
+						prevCounter = currentCounter;
+						float milsecsPerFrame = (float)currentFrameTime;
+						float fps = 1.0f / (milsecsPerFrame / 1000.0f);
+
+						//cycle
+						currCycleCounter = (uint64_t)__rdtsc();
+						uint64_t cycleDiff = currCycleCounter - prevCycleCounter;
+						float iterMCycles = (float)cycleDiff / (1000.0f * 1000.0f);
+
+						//output
+						char Buffer[256];
+						sprintf_s(Buffer, "%0.2f miliseconds, %0.2f fps, %0.2f mega cycles\n", milsecsPerFrame, fps, iterMCycles);
+						OutputDebugStringA(Buffer);
+
+						//Now that frame over, we set audio and paint the screen
+
+						//audio output function
+						HandmadeWriteInSoundBuffer(&gameSoundInfo);
 					}
-					prevCounter = currentCounter;
-					float milsecsPerFrame = (float)currentFrameTime;
-					float fps = 1.0f / (milsecsPerFrame / 1000.0f);
-
-					//cycle
-					currCycleCounter = (uint64_t)__rdtsc();
-					uint64_t cycleDiff = currCycleCounter - prevCycleCounter;
-					float iterMCycles = (float)cycleDiff / (1000.0f * 1000.0f);
-
-					//output
-					char Buffer[256];
-					sprintf_s(Buffer, "%0.2f miliseconds, %0.2f fps, %0.2f mega cycles\n", milsecsPerFrame, fps, iterMCycles);
-					OutputDebugStringA(Buffer);
-
-					//Now that frame over, we set audio and paint the screen
-
-					//audio output function
-					HandmadeWriteInSoundBuffer(&gameSoundInfo);
-
-					//actually paint the bitmap
-					//first we get device context
-					HDC WindowContext = GetDC(WindowHandle);
-					RectDimensions clientWindowRect = GetContextDimensions(WindowHandle);
-
+					
 #if INTERNAL_BUILD
-					AudioPointersInfo newCursors;
-					secondaryBuffer->GetCurrentPosition(&newCursors.playCursor, &newCursors.writeCursor);
-					audioDebugVars[audioDebugIndex++] = newCursors;
+					secondaryBuffer->GetCurrentPosition(&audioDebugVars.playCursor, &audioDebugVars.writeCursor);
+					audioDebugVars.currentPointer = audioInf.soundCounter * audioInf.bytesPerSample % audioInf.bufferSize;
 
-					if (audioDebugIndex >= Audio_debug_count)
-					{
-						audioDebugIndex = 0;
-					}
-
-					HandmadeDrawAudioDebug(audioDebugVars);
+					HandmadeDrawAudioDebug(&audioDebugVars);
 #endif
-					HandmadeUpdateWindow(BackBuffer, WindowContext, 0, 0, clientWindowRect.width, clientWindowRect.height);
+					if (!IsGamePaused)
+					{
+						//actually paint the bitmap
+						//first we get device context
+						HDC WindowContext = GetDC(WindowHandle);
+						RectDimensions clientWindowRect = GetContextDimensions(WindowHandle);
+
+						HandmadeUpdateWindow(BackBuffer, WindowContext, 0, 0, clientWindowRect.width, clientWindowRect.height);
 
 
-					//release device context
-					ReleaseDC(WindowHandle, WindowContext);
+						//release device context
+						ReleaseDC(WindowHandle, WindowContext);
 
-					//update prev timer to be the current
-					prevCycleCounter = currCycleCounter;
-
+						//update prev timer to be the current
+						prevCycleCounter = currCycleCounter;
+					}
 				}
 			}
 			else
